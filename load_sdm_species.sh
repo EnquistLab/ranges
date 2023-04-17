@@ -1,8 +1,11 @@
 #!/bin/bash
 
 #########################################################################
-# Load BIEN range model species (2022 run) from Cory to BIEN DB and
-# add columns for taxonomic_status and higher_taxon
+# Load table of SDM species to BIEN DB and add columns for 
+# taxonomic_status and higher_taxon
+#
+# This script developed for March 2022 run using BIEN 4.2 data
+# May not work for later versions as SDM schema constantly changes
 #########################################################################
 
 # Comment-block tags - Use for all temporary comment blocks
@@ -17,9 +20,9 @@
 #### TEMP ####
 
 
-#
+#######################
 # Parameters
-#
+#######################
 
 # Database params
 DB="vegbien"
@@ -52,7 +55,7 @@ e="true"
 # Process name for emails
 pname="Load species"
 
-# Email address for notifications
+# Set email address for notifications
 email="bboyle@email.arizona.edu"
 
 # Send mail parameter ("true"|"false")
@@ -77,9 +80,9 @@ echo ""
 
 source "${includesdir}/mail_process_start.sh"
 
-# 
+#######################
 # Main
-#
+#######################
 
 echoi $i -n "Creating species table..."
 PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -v SCH="$SCH_WORKING" -f "${wd}/sql/create_species_table.sql"
@@ -115,8 +118,5 @@ sql="\copy ${SCH_WORKING}.bien_ranges_species to '${wd}/${spp_outfile}' csv head
 PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
 source "${includesdir}/check_status.sh"
 
-# 
 # Send process completion message
-#
-
 source "${includesdir}/finish.sh"

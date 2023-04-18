@@ -1,18 +1,18 @@
 #!/bin/bash
 
 #########################################################################
-# Extract BIEN 4.2 range model data
-#
-# NOT FOR PRODUCTION RUN. Only purpose is to test effect of filtering
-# out introduced observations on total species count
+# Extract BIEN range model data
 #
 # Notes:
-#  1. Observations for each species saved to separate file (make sure containing
-#     directory exists)
-#  2. Species attributes saved to single, separate file
-#  3. Directories $rm_datadir and $rmspp_datadir must exist
-#  4. Same as November 2022 run, except is_introduced=1 only (no nulls)
-#
+#  1. All parameters set in params_[RUNDATE].sh
+#  1. Range model data tables saved to schema "range_data"
+#  2. Schema "range_data" must already exist; it is not created by this script
+#  3. Directories $rm_datadir and $rmspp_datadir must also exist (if savedata="t")
+#  4. If savedata="t":
+#		* Data exported to filesystem, to directories $rm_datadir
+#		* The above directory will be created if not already exist
+#		* Observations for each species saved to separate file in subdir species/
+#		* Species attributes saved to single, separate file
 #########################################################################
 
 # Comment-block tags - Use for all temporary comment blocks
@@ -27,7 +27,29 @@
 #### TEMP ####
 
 #
+# Load parameters file
+#
+
+source "params_20230417.sh"
+
+if [ "$LIMIT" == "" ]; then
+	LIMITCLAUSE=""
+else
+	LIMITCLAUSE=" LIMIT ${LIMIT} "
+fi
+
+# Range model metadata file
+# Note: individual species data in separate files [Genus]_[species].csv
+sdm_spp_outfile="${TBL_RMS}.csv"
+
+# Load generic functions
+source $includesdir"/${f_func}"	# Load functions file(s)
+
+
+
+#
 # Get command line parameters
+# Can over-ride parameters loaded from file (above)
 #  
 
 # Set defaults
@@ -53,80 +75,6 @@ while [ "$1" != "" ]; do
 done
 
 #
-# Parameters
-#
-
-# Email address for notifications
-# You must supply command line parameter -m to use this
-email="bboyle@email.arizona.edu"
-
-# LIMIT clause for testing only
-# Set to empty string for production run 
-LIMIT=100
-LIMIT=""
-
-# Run date
-# MUST be of format yyyymmdd
-rundate="20230411"
-rundate="test"
-
-# Save data to filesystem (t|f)
-# if t then just produces postgres tables
-savedata="f"
-
-# Database params
-DB="vegbien"
-SCH="analytical_db"
-USER="bien"
-
-# Range model data table
-TBL_RMD="range_model_data_raw_${rundate}"
-
-# Range model species table
-TBL_RMS="range_model_species_${rundate}"
-
-# Base directory
-basedir="/home/boyle/bien"
-
-# Where are generic functions, etc?
-includesdir=$basedir"/includes/sh"
-
-# Working directory 
-wd=$basedir"/ranges"
-
-# Source code base directory (this script)
-srcdir=$wd"/src"
-
-# input data directory 
-datadir=$wd"/data"
-
-# range model data base directory 
-rm_datadir=$datadir"/rm_data_${rundate}"
-
-# range model species data directory 
-rmspp_datadir=$rm_datadir"/species"
-
-#
-# END Parameters. Remaining parameters set automatically.
-#
-
-if [ "$LIMIT" == "" ]; then
-	LIMITCLAUSE=""
-else
-	LIMITCLAUSE=" LIMIT ${LIMIT} "
-fi
-
-# Range model metadata file
-# Note: individual species data in separate files [Genus]_[species].csv
-sdm_spp_outfile="${TBL_RMS}.csv"
-
-# Load generic functions
-source $includesdir"/functions.sh"	# Load functions file(s)
-
-# Process name for emails
-pname="BIEN range model data extract on ${rundate}"
-
-#
 # confirm operation and send email
 #
 
@@ -150,7 +98,8 @@ if [[ "$i" = "true" && -z ${master+x} ]]; then
 	Starting process '$pname' with the following parameters: 
 	
 	Database:		$DB
-	Schema:			$SCH
+	Source schema:		$SCH
+	Destination schema:	$SCH_RMD
 	User:			$USER
 	Raw data table:		$TBL_RMD
 	Raw species table:	$TBL_RMS
@@ -186,16 +135,30 @@ fi
 # Main
 #
 
+
 echoi $i -n "Extracting range model data to table ${TBL_RMD}..."
 
-# Set index names
+# Set table-specific index name oparameters
 TBL_RMD_SSB_IDX="${TBL_RMD}_scrubbed_species_binomial_idx"
 TBL_RMD_SNS_IDX="${TBL_RMD}_species_nospace_idx"
-PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -v SCH="$SCH" -v TBL_RMD="${TBL_RMD}" -v TBL_RMD_SSB_IDX="${TBL_RMD_SSB_IDX}" -v TBL_RMD_SNS_IDX="${TBL_RMD_SNS_IDX}" -v LIMITCLAUSE="${LIMITCLAUSE}" -f "${srcdir}/sql/range_model_data_raw_${rundate}.sql"
+
+# Extract table of raw data
+PGOPTIONS='--client-min-messages=warning' \
+psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+-v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
+-v TBL_RMD="${TBL_RMD}" \
+-v TBL_RMD_SSB_IDX="${TBL_RMD_SSB_IDX}" -v TBL_RMD_SNS_IDX="${TBL_RMD_SNS_IDX}" \
+-v SQL_WHERE="${SQL_WHERE}" -v LIMITCLAUSE="${LIMITCLAUSE}" \
+-f "${srcdir}/sql/range_model_data_raw.sql"
 source "${includesdir}/check_status.sh"
 
+# Extract table of species and attributes
 echoi $i -n "Extracting range model species to table ${TBL_RMS}..."
-PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -v SCH="$SCH" -v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}" -f "${srcdir}/sql/range_model_species.sql"
+PGOPTIONS='--client-min-messages=warning' \
+psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+-v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
+-v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}" \
+-f "${srcdir}/sql/range_model_species.sql"
 source "${includesdir}/check_status.sh"
 
 if [ "$savedata" == "t" ]; then
@@ -204,8 +167,9 @@ if [ "$savedata" == "t" ]; then
 	source "${includesdir}/check_status.sh"
 
 	echoi $i -n "Dumping range model species to file..."
-	sql="\copy (SELECT DISTINCT species_nospace FROM ${SCH}.${TBL_RMD} ORDER BY species_nospace) TO '${rm_datadir}/bien_ranges_species' WITH (FORMAT CSV)"
-	PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
+	sql="\copy (SELECT DISTINCT species_nospace FROM ${SCH_RMD}.${TBL_RMD} ORDER BY species_nospace) TO '${rm_datadir}/bien_ranges_species' WITH (FORMAT CSV)"
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
 	source "${includesdir}/check_status.sh"
 
 	# Dump range model data, one file per species, no header
@@ -216,16 +180,18 @@ if [ "$savedata" == "t" ]; then
 		f_species="${SPECIES}.csv"
 		echo -ne "\rDumping range model data by species: ${SPECIES}            "
 		lastspecies=$SPECIES
-	sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv "
-	PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
+	sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH_RMD}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv "
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
 	done < ${rm_datadir}/bien_ranges_species
 	echo -ne "\rDumping range model data by species: "$lastspecies"..."
 	source "${includesdir}/check_status.sh"
 
 	# Dump range model species attribute file, CSV with header
 	echoi $i -n "Exporting range model species attributes file..."
-	sql="\copy (SELECT species_nospace AS species, family, taxonomic_status, higher_plant_group, is_vasc, growth_form FROM ${SCH}.${TBL_RMS} ORDER BY species_nospace ) to '${rm_datadir}/${sdm_spp_outfile}' csv header"
-	PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
+	sql="\copy (SELECT species_nospace AS species, family, taxonomic_status, higher_plant_group, is_vasc, growth_form FROM ${SCH_RMD}.${TBL_RMS} ORDER BY species_nospace ) to '${rm_datadir}/${sdm_spp_outfile}' csv header"
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c "${sql}"
 	source "${includesdir}/check_status.sh"
 else
 	echoi $i "[Generated Postgres tables only; data not saved to filesystem]"

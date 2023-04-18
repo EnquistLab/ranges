@@ -2,13 +2,14 @@
 
 #########################################################################
 # Extract BIEN 4.2 range model data and extract data and metadata tables 
-# for November 2022 modeling run
+# for December 2022 modeling run
 #
 # Notes:
 #  1. Observations for each species saved to separate file (make sure containing
 #     directory exists)
 #  2. Species attributes saved to single, separate file
 #  3. Directories $rm_datadir and $rmspp_datadir must exist
+#  4. Same as November 2022 run, except is_introduced=1 only (no nulls)
 #
 #########################################################################
 
@@ -68,10 +69,10 @@ SCH="analytical_db"
 USER="bien"
 
 # Range model data table
-TBL_RMD="range_model_data_raw_202211"
+TBL_RMD="range_model_data_raw_202212"
 
 # Range model species table
-TBL_RMS="range_model_species_202211"
+TBL_RMS="range_model_species_202212"
 
 # Base directory
 basedir="/home/boyle/bien"
@@ -89,7 +90,7 @@ srcdir=$wd"/src"
 datadir=$wd"/data"
 
 # range model data base directory 
-rm_datadir=$datadir"/rm_data_202211"
+rm_datadir=$datadir"/rm_data_202212"
 
 # range model species data directory 
 rmspp_datadir=$rm_datadir"/species"
@@ -112,7 +113,7 @@ sdm_spp_outfile="${TBL_RMS}.csv"
 source $includesdir"/functions.sh"	# Load functions file(s)
 
 # Process name for emails
-pname="Extract November 2022 range model data"
+pname="Extract December 2022 range model data"
 
 #
 # confirm operation and send email
@@ -177,11 +178,11 @@ echoi $i -n "Extracting range model data to table ${TBL_RMD}..."
 # Set index names
 TBL_RMD_SSB_IDX="${TBL_RMD}_scrubbed_species_binomial_idx"
 TBL_RMD_SNS_IDX="${TBL_RMD}_species_nospace_idx"
-PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -v SCH="$SCH" -v TBL_RMD="${TBL_RMD}" -v TBL_RMD_SSB_IDX="${TBL_RMD_SSB_IDX}" -v TBL_RMD_SNS_IDX="${TBL_RMD_SNS_IDX}" -v LIMITCLAUSE="${LIMITCLAUSE}" -f "${srcdir}/sql/range_model_data_raw_202211.sql"
+PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -v SCH="$SCH" -v TBL_RMD="${TBL_RMD}" -v TBL_RMD_SSB_IDX="${TBL_RMD_SSB_IDX}" -v TBL_RMD_SNS_IDX="${TBL_RMD_SNS_IDX}" -v LIMITCLAUSE="${LIMITCLAUSE}" -f "${srcdir}/sql/range_model_data_raw_202212.sql"
 source "${includesdir}/check_status.sh"
 
 echoi $i -n "Extracting range model species to table ${TBL_RMS}..."
-PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -v SCH="$SCH" -v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}" -f "${srcdir}/sql/range_model_species.sql"
+PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -v SCH="$SCH" -v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}" -f "${srcdir}/sql/range_model_species.bak.sql"
 source "${includesdir}/check_status.sh"
 echoi $i -n "Dumping range model species to file..."
 sql="\copy (SELECT DISTINCT species_nospace FROM ${SCH}.${TBL_RMD} ORDER BY species_nospace) TO '${rm_datadir}/bien_ranges_species' WITH (FORMAT CSV)"

@@ -2,8 +2,13 @@
 -- Extract raw range model data table
 -- -------------------------------------------------------------------
 
-SET search_path TO :SCH;
+SET search_path TO :SCH_RMD;
 
+--
+-- Extract the raw data
+-- 
+
+-- See params file for SQL_WHERE and LIMITCLAUSE 
 DROP TABLE IF EXISTS :TBL_RMD;
 CREATE TABLE :TBL_RMD AS
 SELECT taxonobservation_id, 
@@ -11,20 +16,14 @@ scrubbed_species_binomial, latitude, longitude,
 scrubbed_taxonomic_status AS taxonomic_status, higher_plant_group, 
 country, native_status, is_introduced, 
 observation_type, event_date
-FROM view_full_occurrence_individual
-WHERE scrubbed_species_binomial IS NOT NULL 
-AND higher_plant_group IN ('bryophytes', 'ferns and allies','flowering plants','gymnosperms (conifers)', 'gymnosperms (non-conifer)') 
-AND is_invalid_latlong=0 
-AND is_geovalid = 1 
-AND (georef_protocol is NULL OR georef_protocol<>'county_centroid') 
-AND (is_centroid IS NULL OR is_centroid=0) 
-AND is_location_cultivated IS NULL 
-AND (is_cultivated_observation = 0 OR is_cultivated_observation IS NULL) 
-AND is_introduced=0 
-AND observation_type IN ('plot','specimen','literature','checklist') 
-AND ( EXTRACT(YEAR FROM event_date)>=1950 OR event_date IS NULL )
+FROM :"SCH"."view_full_occurrence_individual"
+:SQL_WHERE
 :LIMITCLAUSE
 ;
+
+--
+-- Prepare additional fields
+--
 
 ALTER TABLE :TBL_RMD
 ADD COLUMN species_nospace text,
@@ -56,11 +55,16 @@ SET taxonomic_status='Unresolved'
 WHERE taxonomic_status='No opinion'
 ;
 
+--
+-- Add indexes
+--
+
 DROP INDEX IF EXISTS :"TBL_RMD_SSB_IDX";
 CREATE INDEX :"TBL_RMD_SSB_IDX" ON :TBL_RMD (scrubbed_species_binomial);
 
 DROP INDEX IF EXISTS :"TBL_RMD_SNS_IDX";
 CREATE INDEX :"TBL_RMD_SNS_IDX" ON :TBL_RMD (species_nospace);
+
 
 
 

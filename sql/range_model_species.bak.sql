@@ -1,8 +1,9 @@
 -- -------------------------------------------------------------------
 -- Extract range model species attribute table
+-- Early version, keeping so earlier scripts can run
 -- -------------------------------------------------------------------
 
-SET search_path TO :SCH_RMD;
+SET search_path TO :SCH;
 
 DROP TABLE IF EXISTS :TBL_RMS;
 CREATE TABLE :TBL_RMS AS
@@ -21,6 +22,6 @@ UPDATE :TBL_RMS a
 SET 
 family=b.family,
 growth_form=b.gf
-FROM :"SCH"."species_growth_forms" b
+FROM species_growth_forms b
 WHERE a.scrubbed_species_binomial=b.species
 ;

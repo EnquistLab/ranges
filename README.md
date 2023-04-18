@@ -25,6 +25,6 @@ All tasks are performed by main shell scripts in base directory (this one). SQL 
 #### 2. Export SDM species occurrence input data from BIEN analytical database
 
 ```
-./range_model_data_202209.sh 
+./range_model_data_[RUNDATE].sh 
 ```
 

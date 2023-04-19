@@ -2,9 +2,9 @@
 # Parameters
 #
 
-# The WHERE clause this range model run
-# Use of HEREDOC method enables multi-line format for easier reading while also
-# preventing line endings from crashing psql command
+# The WHERE clause used to filter range model for this run
+# Wrapping in HEREDOC for easier reading without crashing psql 
+# command due to line endings
 SQL_WHERE=$(cat << HEREDOC
 
 WHERE scrubbed_species_binomial IS NOT NULL 
@@ -22,40 +22,36 @@ AND ( EXTRACT(YEAR FROM event_date)>=1950 OR event_date IS NULL )
 HEREDOC
 )
 
-# LIMIT clause for testing only
-# Set to empty string for production run 
-LIMIT=""
+# SQL record limit for testing with small batch of records
+# Set to empty string to remove limit for production run 
 LIMIT=100
+LIMIT=""
 
 # Run date
-# CRITICAL! Used to form names of run-specific directory
-# MUST be of format yyyymmdd
-rundate="20230417"
+# CRITICAL! This identifies a unique model run
+# Also used to form names of run-specific postgres tables and data directory
+# MUST be unix-friendly (no spaces, etc.)
+# Preferred format: yyyymmdd
+rundate="20230418"
 
 # Save data to filesystem (t|f)
-# if t then just produces postgres tables
+# if "f" then just produces postgres tables
 savedata="t"
 
-# Database params
-# SCH is main BIEN DB schema (source schema)
-# SCH_RMD is range model data schema (destination schema, where data tables generated)
+# Database parameters
+# SCH is the schema of the main BIEN analytical DB (source schema)
+# SCH_RMD is range model data schema (target schema, where data tables generated)
 DB="vegbien"
+USER="bien"
 SCH="analytical_db"
 SCH_RMD="range_data"
-USER="bien"
-
-# Range model data table
-TBL_RMD="range_model_data_raw_${rundate}"
-
-# Range model species table
-TBL_RMS="range_model_species_${rundate}"
 
 # Base directory
-# Full path to parent directory of ranges/ 
-# CRITICAL! All other directories are relative to this one
+# Full path to parent directory of module base directory (i.e., parent of ranges/)
+# CRITICAL! All other directories are set relative to this one
 basedir="/home/boyle/bien"
 
-# Directory of shared functions & utilities files
+# Directory of wherever shared functions & utilities files are kept
 includesdir=$basedir"/includes/sh"
 
 # Name of shared functions file
@@ -64,13 +60,14 @@ f_func="functions.sh"
 # Process name for email notifications
 pname="BIEN range model data extract on ${rundate}"
 
-# Email address for notifications
-# You must supply command line parameter -m to use this
+# Default email address for notifications (start, finish, error)
+# Used if you supply command line parameter -m 
 email="bboyle@email.arizona.edu"
+email="ojalaquellueva@gmail.com"
 
 #
-# The remaining parameters won't change unless you fundamentally 
-# restructure the application
+# The remaining parameters shouldn't change unless you 
+# fundamentally restructure the application
 #
 
 # Working directory 
@@ -87,4 +84,3 @@ rm_datadir=$datadir"/rm_data_${rundate}"
 
 # range model species data directory 
 rmspp_datadir=$rm_datadir"/species"
-

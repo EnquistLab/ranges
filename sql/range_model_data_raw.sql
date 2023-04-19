@@ -18,7 +18,7 @@ country, native_status, is_introduced,
 observation_type, event_date
 FROM :"SCH"."view_full_occurrence_individual"
 :SQL_WHERE
-:LIMITCLAUSE
+:SQL_LIMIT
 ;
 
 --
@@ -59,9 +59,11 @@ WHERE taxonomic_status='No opinion'
 -- Add indexes
 --
 
+\set TBL_RMD_SSB_IDX :TBL_RMD'_scrubbed_species_binomial_idx'
 DROP INDEX IF EXISTS :"TBL_RMD_SSB_IDX";
 CREATE INDEX :"TBL_RMD_SSB_IDX" ON :TBL_RMD (scrubbed_species_binomial);
 
+\set TBL_RMD_SNS_IDX :TBL_RMD'_species_nospace_idx'
 DROP INDEX IF EXISTS :"TBL_RMD_SNS_IDX";
 CREATE INDEX :"TBL_RMD_SNS_IDX" ON :TBL_RMD (species_nospace);
 

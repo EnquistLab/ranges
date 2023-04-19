@@ -4,6 +4,8 @@
 # Load table of SDM species to BIEN DB and add columns for 
 # taxonomic_status and higher_taxon
 #
+# No external params file. All parameters set below.
+#
 # This script developed for March 2022 run using BIEN 4.2 data
 # May not work for later versions as SDM schema constantly changes
 #########################################################################
@@ -18,7 +20,6 @@
 ## End comment block
 # COMMENT_BLOCK_xxx
 #### TEMP ####
-
 
 #######################
 # Parameters

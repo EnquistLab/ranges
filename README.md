@@ -18,7 +18,7 @@ ranges/
             |-- Aa_achalensis.csv
             |-- Aa_peruviana.csv
             |-- [etc.]
-|-- docs/ 
+|-- docs/ [Miscellaneous documentation here]
 |-- src/ [git repo; all application code here. Main scripts at top level]
     |-- params.sh [parameters file]
     |-- range_model_data.sh [main data export script in bash]

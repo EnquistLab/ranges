@@ -1,6 +1,6 @@
--- 
+-- -------------------------------------------------------------------------
 -- Flag species and observations for species names with >1 taxonomic status
---
+-- -------------------------------------------------------------------------
 
 SET search_path TO :SCH_RMD;
 

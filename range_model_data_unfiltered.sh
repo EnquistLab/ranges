@@ -1,3 +1,4 @@
+f_params="params_unfiltered_20230501.sh"  # Unfiltered range model data for Cory & Pep
 #!/bin/bash
 
 #########################################################################
@@ -22,8 +23,7 @@
 
 # Name of parameters file. 
 # CRITICAL! This is the only parameter you need to set in this file.
-f_params="params_20230418"  # BIEN 4.2.6 range model data production run 2023-04-18
-f_params="params_20230420_unfiltered.sh"  # Unfiltered range model data for Cory & Pep
+f_params="params_unfiltered_20230501.sh"  # Unfiltered range model data for Cory & Pep
 
 # Load parameters
 source "$f_params"  
@@ -91,12 +91,10 @@ if [[ "$i" = "true" && -z ${master+x} ]]; then
 	Destination schema:	$SCH_RMD
 	User:			$USER
 	Raw data table:		$TBL_RMD
-	Raw species table:	$TBL_RMS
 	Save data to files:	$savedata
-	Species file:		$rms_outfile
 	Model data dir: 	$rm_datadir
 	Species data dir: 	$rmspp_datadir
-	Run date:		$run
+	Run code:		$run
 	Run type:		$runtype
 	Record limit:		$limit_disp
 	Send notifications?:	$m
@@ -140,7 +138,7 @@ if [ "$savedata" == "t" ]; then
 fi 
 
 # Extract raw observations
-echoi $i -n "Extracting range model data to table ${TBL_RMD}..."
+echoi $i -n "Extracting unfiltered range model data to table ${TBL_RMD}..."
 PGOPTIONS='--client-min-messages=warning' \
 psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
 -v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
@@ -150,28 +148,9 @@ psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
 -f "${srcdir}/sql/range_model_data_raw.sql"
 source "${includesdir}/check_status.sh"
 
-# Delete observations where taxonomic status unresolved AND species has >1 status
-echoi $i -n "Deleting observations where taxonomic_status=\"Unresolved\" and species has >1 taxonomic status..."
-# Extract table of raw data
-PGOPTIONS='--client-min-messages=warning' \
-psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
--v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
--v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}" -v TBL_RMDS="${TBL_RMDS}" \
--f "${srcdir}/sql/multistatus_species.sql"
-source "${includesdir}/check_status.sh"
-
-# Extract table of species and attributes
-echoi $i -n "Extracting range model species to table ${TBL_RMS}..."
-PGOPTIONS='--client-min-messages=warning' \
-psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
--v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
--v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}"  -v TBL_RMDS="${TBL_RMDS}" \
--f "${srcdir}/sql/range_model_species.sql"
-source "${includesdir}/check_status.sh"
-
 if [ "$savedata" == "t" ]; then
 
-	echoi $i -n "Dumping range model species to file..."
+	echoi $i -n "Dumping list of species to file..."
 	sql="\copy (SELECT DISTINCT species_nospace FROM ${SCH_RMD}.${TBL_RMD} ORDER BY species_nospace) TO '${rm_datadir}/range_model_species' WITH (FORMAT CSV)"
 	PGOPTIONS='--client-min-messages=warning' \
 	psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
@@ -183,7 +162,7 @@ if [ "$savedata" == "t" ]; then
 	do
 		#species_ns="${SPECIES// /_}"
 		f_species="${SPECIES}.csv"
-		echo -ne "\rDumping range model data by species: ${SPECIES}            "
+		echo -ne "\rDumping unfiltered range model data by species: ${SPECIES}           "
 		lastspecies=$SPECIES
 		sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH_RMD}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv "
 		PGOPTIONS='--client-min-messages=warning' \
@@ -191,13 +170,6 @@ if [ "$savedata" == "t" ]; then
 	done < ${rm_datadir}/range_model_species
 
 	echo -ne "\rDumping range model data by species: "$lastspecies"..."
-	source "${includesdir}/check_status.sh"
-
-	# Dump range model species attribute file, CSV with header
-	echoi $i -n "Exporting range model species attributes file..."
-	sql="\copy (SELECT species_nospace AS species, family, taxonomic_status, higher_plant_group, is_vasc, growth_form FROM ${SCH_RMD}.${TBL_RMS} ORDER BY species_nospace ) to '${rm_datadir}/${rms_outfile}' csv header"
-	PGOPTIONS='--client-min-messages=warning' \
-	psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c "${sql}"
 	source "${includesdir}/check_status.sh"
 else
 	echoi $i "[Generated Postgres tables only; data not saved to filesystem]"

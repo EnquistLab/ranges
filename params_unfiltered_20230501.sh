@@ -35,7 +35,7 @@ LIMIT=100
 # MUST be unix-friendly (no spaces, etc.)
 # Preferred format: yyyymmdd, but not required. Can also add other suffix to uniquely
 # identify a run
-run="20230420_unfiltered"
+run="20230501_unfiltered"
 
 # Save data to filesystem (t|f)
 # if "f" then just produces postgres tables
@@ -94,14 +94,14 @@ rmspp_datadir=$rm_datadir"/species"
 
 # Range model data table
 TBL_RMD="range_model_data_raw_${run}"
-
-# Range model species table
-TBL_RMS="range_model_species_${run}"
-
-# Range model data statistics table
-TBL_RMDS="range_model_data_stats_${run}"
-
-# Range model species attributes file
-# Note: individual species data in separate files [Genus]_[species].csv
-rms_outfile="range_model_species_attributes.csv"
+# 
+# # Range model species table
+# TBL_RMS="range_model_species_${run}"
+# 
+# # Range model data statistics table
+# TBL_RMDS="range_model_data_stats_${run}"
+# 
+# # Range model species attributes file
+# # Note: individual species data in separate files [Genus]_[species].csv
+# rms_outfile="range_model_species_attributes.csv"
 

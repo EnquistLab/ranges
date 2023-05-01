@@ -1,27 +1,23 @@
 #!/bin/bash
 
 #########################################################################
-# Extract BIEN range model data
+# Extract BIEN data unfiltered
 #
-# This is the main range model data extraction script. All parameters are set in
-# the single parameters file, which has a date suffix. Once a script has
-# been used for a production extract of range model data (and the actual models
-# produced, served publicly from BIEN applications and/or used in publications),
-# all changes should be committed, pushed to GitHub and a tag (version number) 
-# assigned and also pushed. Rather than semantic versioning, the most accurate
-# tag is $run (yyyymmdd), as assigned in the params file. Given this 
-# information, the version numbers of the BIEN DB and all validation applications 
-# can be reconstructed.
+# One-off script to pull all vfoi rows to new table, including only 
+# columns relevant to range model data and the fields used in the
+# WHERE clause. For Cory and Pep study on the effects of different
+# BIEN validations, standardizations and filters
 #
 # Notes:
-#  1. All parameters set in params.sh
+#  1. All parameters set in params_unfiltered.sh
 #  1. Range model data tables saved to schema "range_data"
 #  2. Directories $rm_datadir and $rmspp_datadir must also exist (if savedata="t")
 #  3. If savedata="t":
 #		* Data exported to filesystem, to directories $rm_datadir (see params.sh)
 #		* The above directory will be created if not already exist
 #		* Observations for each species saved to separate files in subdir species/
-#		* Species attributes saved to separate file
+#		* Unlike actual range model data, species attribute table and 
+#         file are not produced, only a list of species binomials
 #########################################################################
 
 # Name of parameters file. 

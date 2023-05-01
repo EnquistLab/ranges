@@ -36,7 +36,7 @@ ALTER TABLE multistatus_species
 ADD PRIMARY KEY (scrubbed_species_binomial)
 ;
 
--- Save before counts to table range_model_data_stats_${rundate}
+-- Save before counts to table range_model_data_stats_${run}
 DROP TABLE IF EXISTS :TBL_RMDS;
 CREATE TABLE :TBL_RMDS AS
 SELECT 

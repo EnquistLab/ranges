@@ -34,10 +34,22 @@ SELECT scrubbed_species_binomial,
 	string_agg(DISTINCT native_status, ',' 
 	ORDER BY native_status) AS native_status,
 	COUNT(*) AS obs
-FROM (
-SELECT scrubbed_species_binomial, scrubbed_taxonomic_status, native_status
-FROM :"SCH_ADB".view_full_occurrence_individual
-:SQL_LIMIT
+	FROM (
+	SELECT scrubbed_species_binomial, scrubbed_taxonomic_status, native_status
+	FROM :"SCH_ADB".view_full_occurrence_individual
+	-- START BIEN range model data WHERE clause, minus filter on "is_introduced"
+	WHERE scrubbed_species_binomial IS NOT NULL 
+	AND higher_plant_group IN ('bryophytes', 'ferns and allies','flowering plants','gymnosperms (conifers)', 'gymnosperms (non-conifer)') 
+	AND is_invalid_latlong=0 
+	AND is_geovalid = 1 
+	AND (georef_protocol is NULL OR georef_protocol<>'county_centroid') 
+	AND (is_centroid IS NULL OR is_centroid=0) 
+	AND is_location_cultivated IS NULL 
+	AND (is_cultivated_observation = 0 OR is_cultivated_observation IS NULL) 
+	AND observation_type IN ('plot','specimen','literature','checklist') 
+	AND ( EXTRACT(YEAR FROM event_date)>=1950 OR event_date IS NULL )
+	-- END BIEN range model data WHERE clause
+	:SQL_LIMIT
 ) a
 WHERE scrubbed_species_binomial IS NOT NULL
 GROUP BY scrubbed_species_binomial
@@ -171,9 +183,9 @@ SELECT * FROM country_not_in_nsr ORDER BY country;
 -- Export all results as CSV files
 --
 
-\copy spp_not_modeled_native_status to /home/boyle/bien/ranges/data/spp_not_modeled_native_status.csv with csv
+\copy spp_not_modeled_native_status to /home/boyle/bien/ranges/data/spp_not_modeled_native_status.csv with csv header
 
-\copy spp_not_modeled_taxonomic_status to /home/boyle/bien/ranges/data/spp_not_modeled_taxonomic_status.csv with csv
+\copy spp_not_modeled_taxonomic_status to /home/boyle/bien/ranges/data/spp_not_modeled_taxonomic_status.csv with csv header
 
-\copy country_not_in_nsr to /home/boyle/bien/ranges/data/country_not_in_nsr.csv with csv
+\copy country_not_in_nsr to /home/boyle/bien/ranges/data/country_not_in_nsr.csv with csv header
 

@@ -11,11 +11,7 @@ SET search_path TO :SCH_RMD;
 -- See params file for SQL_WHERE and LIMITCLAUSE 
 DROP TABLE IF EXISTS :TBL_RMD;
 CREATE TABLE :TBL_RMD AS
-SELECT taxonobservation_id, 
-scrubbed_species_binomial, latitude, longitude, 
-scrubbed_taxonomic_status AS taxonomic_status, higher_plant_group, 
-country, native_status, is_introduced, 
-observation_type, event_date
+:SQL_SELECT
 FROM :"SCH"."view_full_occurrence_individual"
 :SQL_WHERE
 :SQL_LIMIT

@@ -67,8 +67,7 @@ LIMIT=""
 
 # Run date
 # MUST be of format yyyymmdd
-rundate="20230411"
-rundate="test"
+rundate="20230414"
 
 # Save data to filesystem (t|f)
 # if t then just produces postgres tables

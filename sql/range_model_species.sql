@@ -65,7 +65,7 @@ WHERE a.scrubbed_species_binomial=b.species
 ;
 
 -- 
--- Save after counts to table range_model_data_stats_${rundate}
+-- Save after counts to table range_model_data_stats_${run}
 --
 
 INSERT INTO :TBL_RMDS (

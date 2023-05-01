@@ -1,10 +1,22 @@
-#
-# Parameters
-#
+#############################################################
+# Parameters file template
+# Copy this file, adjust parameters as needed, and save with new name, 
+#############################################################
+
+# The SELECT clause of columns to return
+# Wrapping in HEREDOC to allow line endings without crashing psql command
+SQL_SELECT=$(cat << HEREDOC
+
+SELECT taxonobservation_id, 
+scrubbed_species_binomial, latitude, longitude, 
+scrubbed_taxonomic_status AS taxonomic_status, higher_plant_group, 
+country, native_status, is_introduced, 
+observation_type, event_date
+
+HEREDOC
+)
 
 # The WHERE clause used to filter range model for this run
-# Wrapping in HEREDOC for easier reading without crashing psql 
-# command due to line endings
 SQL_WHERE=$(cat << HEREDOC
 
 WHERE scrubbed_species_binomial IS NOT NULL 
@@ -32,7 +44,7 @@ LIMIT=""
 # Also used to form names of run-specific postgres tables and data directory
 # MUST be unix-friendly (no spaces, etc.)
 # Preferred format: yyyymmdd
-rundate="20230418"
+run="20230418"
 
 # Save data to filesystem (t|f)
 # if "f" then just produces postgres tables
@@ -58,16 +70,20 @@ includesdir=$basedir"/includes/sh"
 f_func="functions.sh"
 
 # Process name for email notifications
-pname="BIEN range model data extract on ${rundate}"
+pname="BIEN range model data extract on ${run}"
 
 # Default email address for notifications (start, finish, error)
 # Used if you supply command line parameter -m 
 email="bboyle@email.arizona.edu"
 email="ojalaquellueva@gmail.com"
 
-#
+#############################################################
 # The remaining parameters shouldn't change unless you 
 # fundamentally restructure the application
+#############################################################
+
+#
+# Paths
 #
 
 # Working directory 
@@ -80,7 +96,25 @@ srcdir=$wd"/src"
 datadir=$wd"/data"
 
 # range model data base directory 
-rm_datadir=$datadir"/rm_data_${rundate}"
+rm_datadir=$datadir"/rm_data_${run}"
 
 # range model species data directory 
 rmspp_datadir=$rm_datadir"/species"
+
+#
+# Table and file names
+#
+
+# Range model data table
+TBL_RMD="range_model_data_raw_${run}"
+
+# Range model species table
+TBL_RMS="range_model_species_${run}"
+
+# Range model data statistics table
+TBL_RMDS="range_model_data_stats_${run}"
+
+# Range model species attributes file
+# Note: individual species data in separate files [Genus]_[species].csv
+rms_outfile="range_model_species_attributes.csv"
+

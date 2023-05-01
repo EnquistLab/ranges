@@ -10,25 +10,24 @@ For creation of the BIEN ranges database and import of complete SDM output, see:
 
 ```
 ranges/
-|-- data/ [range model data exported to here]
-    |-- rm_dat   a_20230418/
-        |-- bien_ranges_species.csv
-        |-- bien_range_model_data.csv
-        |-- species/
-            |-- Aa_achalensis.csv
-            |-- Aa_peruviana.csv
-            |-- [etc.]
-|-- docs/ [Miscellaneous documentation here]
-|-- src/ [git repo; all application code here. Main scripts at top level]
-    |-- params.sh [parameters file]
-    |-- range_model_data.sh [main data export script in bash]
-    |-- README.md
-    |-- sql/ [sql scripts called by main shell scripts in src/]
-        |-- multistatus_species.sql
-        |-- range_model_data_raw.sql
-        |-- range_model_species.sql
-        |-- README.md
-    |-- validations/ [standalone validation scripts, mostly SQL]
+|__ data/ [range model data exported to here]
+|   |__ rm_data_20230418/
+|   |__ range_model_species_attributes.csv [list of spp & attributes]
+|        |__ species/ [individual species data, one file per species]
+|            |__ Aa_achalensis.csv
+|            |__ Aa_peruviana.csv
+|            |__ [etc.]
+|__ docs/ [Miscellaneous documentation here]
+|__ src/ [Application code here & git repo]
+    |__ params_20230418.sh [parameters file; suffix uniquely identifies run]
+    |__ range_model_data.sh [Range model data export main script]
+    |__ README.md
+    |__ sql/ [SQL scripts sourced by main scripts in src/]
+    |   |__ multistatus_species.sql
+    |   |__ range_model_data_raw.sql
+    |   |__ range_model_species.sql
+    |   |__ README.md
+    |__ validations/ [standalone validation scripts]
 ```
 
 ## Usage
@@ -37,7 +36,10 @@ All tasks are performed by main shell scripts in base directory (this one). SQL 
 
 
 ### Export SDM species occurrence input data from BIEN analytical database
-* After setting parameters, execute the main shell script in src/:
+* Main script ranges/src/range_model_data.sh, call all others.
+* Before running:
+   * Set correct name of parameters script (e.g., "source "params_20230418.sh" 
+   * 
 
 ```
 ./range_model_data.sh [-m]
@@ -45,7 +47,7 @@ All tasks are performed by main shell scripts in base directory (this one). SQL 
 
 **Notes:**  
 * Uses parameters in params.sh. Check all carefully!  
-* Note especially $rundate: uniquely identifies a complete set of data for a unique model run. Format yyyymmdd.  
+* Note especially $run: uniquely identifies the dataset used for a unique model run. Recommended format yyyymmdd; may also include additional suffix.
 * After extracting data for final production run of range models, commit & tag all code and push to GitHub  
 
 ### [minor] Import SDM species to BIEN analytical database

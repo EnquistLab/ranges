@@ -1,5 +1,14 @@
 #!/bin/bash
 
+########################################################################
+# Version information
+# This is a versioned copy of range_model_data.sh, as run on 
+# 2023-04-18, using parameters in params_20230418.sh.
+# Extracts range model data using strict filtering of native observations
+# only (is_introduced=0)
+########################################################################
+
+
 #########################################################################
 # Extract BIEN range model data
 #

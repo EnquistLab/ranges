@@ -215,7 +215,7 @@ if [ "$savedata" == "t" ]; then
 		f_species="${SPECIES}.csv"
 		echo -ne "\rDumping range model data by species: ${SPECIES}            "
 		lastspecies=$SPECIES
-	sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv "
+	sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv header"
 	PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
 	done < ${rm_datadir}/bien_ranges_species
 	echo -ne "\rDumping range model data by species: "$lastspecies"..."

@@ -135,7 +135,7 @@ if [ "$savedata" == "t" ]; then
 	echoi $i -n "Creating range model data directories..."
 	
 	if [ -d "${rm_datadir}" ]; then
-		echo "ERROR: range model data directory ${rm_datadir} already exists! Delete before running this script."
+		echo "ERROR: directory ${rm_datadir} already exists! Delete before running this script."
 		exit 1
 	else
 		mkdir -p "${rmspp_datadir}"

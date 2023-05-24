@@ -24,6 +24,7 @@ f_params="params_unfiltered_20230501.sh"  # Unfiltered range model data for Cory
 # Name of parameters file. 
 # CRITICAL! This is the only parameter you need to set in this file.
 f_params="params_unfiltered_20230501.sh"  # Unfiltered range model data for Cory & Pep
+f_params="params_unfiltered.sh"  # Unfiltered range model data for Cory & Pep
 
 # Load parameters
 source "$f_params"  
@@ -129,7 +130,7 @@ if [ "$savedata" == "t" ]; then
 	echoi $i -n "Creating range model data directories..."
 	
 	if [ -d "${rm_datadir}" ]; then
-		echo "ERROR: range model data directory ${rm_datadir} already exists! Delete before running this script."
+		echo "ERROR: directory ${rm_datadir} already exists! Delete before running this script."
 		exit 1
 	else
 		mkdir -p "${rmspp_datadir}"
@@ -157,19 +158,19 @@ if [ "$savedata" == "t" ]; then
 	source "${includesdir}/check_status.sh"
 
 	# Dump range model data, one file per species, no header
-	echoi $i -n "Dumping range model data by species: "
+	echoi $i -n "Dumping unfiltered range model data by species "
 	while read SPECIES
 	do
 		#species_ns="${SPECIES// /_}"
 		f_species="${SPECIES}.csv"
-		echo -ne "\rDumping unfiltered range model data by species: ${SPECIES}           "
+		echo -ne "\rDumping unfiltered range model data by species ${SPECIES}           "
 		lastspecies=$SPECIES
-		sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH_RMD}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv "
+		sql="\copy (SELECT * FROM ${SCH_RMD}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv header "
 		PGOPTIONS='--client-min-messages=warning' \
 		psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
 	done < ${rm_datadir}/range_model_species
 
-	echo -ne "\rDumping range model data by species: "$lastspecies"..."
+	echo -ne "\rDumping unfiltered range model data by species "$lastspecies"..."
 	source "${includesdir}/check_status.sh"
 else
 	echoi $i "[Generated Postgres tables only; data not saved to filesystem]"

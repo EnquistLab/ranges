@@ -9,14 +9,16 @@
 SQL_SELECT=$(cat << HEREDOC
 
 SELECT taxonobservation_id, 
-datasource, dataset, observation_type, event_date, 
-fk_tnrs_id, scrubbed_species_binomial, scrubbed_taxonomic_status AS taxonomic_status, 
+observation_type, datasource, dataset, datasetkey,
+fk_tnrs_id, verbatim_scientific_name, name_matched, name_matched_author,
+matched_taxonomic_status, scrubbed_species_binomial, scrubbed_taxon_name_no_author, 
+scrubbed_author, scrubbed_taxonomic_status AS taxonomic_status,
 higher_plant_group, 
 latitude, longitude, is_invalid_latlong, invalid_latlong_reason,
 fk_gnrs_id, country, is_geovalid,
 fk_cds_id, is_centroid, georef_protocol, 
-is_location_cultivated, 
-nsr_id, is_cultivated_observation, native_status, is_introduced
+nsr_id, is_location_cultivated, is_cultivated_observation, native_status, is_introduced,
+event_date
 
 HEREDOC
 )
@@ -27,7 +29,7 @@ SQL_WHERE=""
 # SQL record limit for testing with small batch of records
 # Set to empty string to remove limit for production run 
 LIMIT=""
-LIMIT=100
+LIMIT=1000
 
 # Run date
 # CRITICAL! This identifies a unique model run
@@ -35,7 +37,7 @@ LIMIT=100
 # MUST be unix-friendly (no spaces, etc.)
 # Preferred format: yyyymmdd, but not required. Can also add other suffix to uniquely
 # identify a run
-run="20230501_unfiltered"
+run="unfiltered"
 
 # Save data to filesystem (t|f)
 # if "f" then just produces postgres tables
@@ -94,14 +96,3 @@ rmspp_datadir=$rm_datadir"/species"
 
 # Range model data table
 TBL_RMD="range_model_data_raw_${run}"
-# 
-# # Range model species table
-# TBL_RMS="range_model_species_${run}"
-# 
-# # Range model data statistics table
-# TBL_RMDS="range_model_data_stats_${run}"
-# 
-# # Range model species attributes file
-# # Note: individual species data in separate files [Genus]_[species].csv
-# rms_outfile="range_model_species_attributes.csv"
-

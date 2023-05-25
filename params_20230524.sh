@@ -43,7 +43,9 @@ LIMIT=""
 # Also used to form names of run-specific postgres tables and data directory
 # MUST be unix-friendly (no spaces, etc.)
 # Preferred format: yyyymmdd
-run="20230418"
+# Add suffix if a later part of a multiple-part run: yyyymmdd_suffix
+# E.g., "20230405_missing_spp"
+run="20230524"
 
 # Save data to filesystem (t|f)
 # if "f" then just produces postgres tables

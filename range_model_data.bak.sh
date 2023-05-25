@@ -1,14 +1,5 @@
 #!/bin/bash
 
-########################################################################
-# Version information
-# This is a versioned copy of range_model_data.sh, as run on 
-# 2023-04-18, using parameters in params_20230418.sh.
-# Extracts range model data using strict filtering of native observations
-# only (is_introduced=0)
-########################################################################
-
-
 #########################################################################
 # Extract BIEN range model data
 #
@@ -35,7 +26,7 @@
 
 # Name of parameters file. 
 # CRITICAL! This is the only parameter you need to set in this file.
-f_params="params_20230418"  # BIEN 4.2.6 range model data production run 2023-04-18
+f_params="params_20230524.sh"  # BIEN 4.2.6 range model data production run 2023-05-24
 
 # Load parameters
 source "$f_params"  
@@ -197,7 +188,7 @@ if [ "$savedata" == "t" ]; then
 		f_species="${SPECIES}.csv"
 		echo -ne "\rDumping range model data by species: ${SPECIES}            "
 		lastspecies=$SPECIES
-		sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH_RMD}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv "
+		sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH_RMD}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv header"
 		PGOPTIONS='--client-min-messages=warning' \
 		psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
 	done < ${rm_datadir}/range_model_species

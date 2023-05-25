@@ -2,6 +2,14 @@
 # Parameters
 #############################################################
 
+# Run code
+# CRITICAL! This identifies a unique model run
+# Also used to form names of run-specific postgres tables and data directory
+# MUST be unix-friendly (no spaces, etc.)
+# Main run format: yyyymmdd
+# Missing species run format: yyyymmdd_missing_spp
+run="20230524_missing_spp"
+
 # The SELECT clause of columns to return
 # Wrapping in HEREDOC to allow line endings without crashing psql command
 SQL_SELECT=$(cat << HEREDOC
@@ -16,6 +24,8 @@ HEREDOC
 )
 
 # The WHERE clause used to filter range model for this run
+# Main run: use "is_introduced=0" 
+# Missing species run: use "is_introduced IS NULL"
 SQL_WHERE=$(cat << HEREDOC
 
 WHERE scrubbed_species_binomial IS NOT NULL 
@@ -26,7 +36,7 @@ AND (georef_protocol is NULL OR georef_protocol<>'county_centroid')
 AND (is_centroid IS NULL OR is_centroid=0) 
 AND is_location_cultivated IS NULL 
 AND (is_cultivated_observation = 0 OR is_cultivated_observation IS NULL) 
-AND is_introduced=0 
+AND is_introduced IS NULL
 AND observation_type IN ('plot','specimen','literature','checklist') 
 AND ( EXTRACT(YEAR FROM event_date)>=1950 OR event_date IS NULL )
 
@@ -38,24 +48,39 @@ HEREDOC
 LIMIT=100
 LIMIT=""
 
-# Run date
-# CRITICAL! This identifies a unique model run
-# Also used to form names of run-specific postgres tables and data directory
-# MUST be unix-friendly (no spaces, etc.)
-# Preferred format: yyyymmdd
-run="20230418"
-
 # Save data to filesystem (t|f)
 # if "f" then just produces postgres tables
 savedata="t"
 
+#######################################
+# Supplemental run parameters
+#######################################
+
+# Is this a missing species run? (t|f)
+# False (f): a main run with is_introduced=1
+# True (t): a supplemental missing species run with is_introduce=NULL
+missing_spp_run="t"
+
+# Previous run code
+# CRITICAL! Used to form name of previous run species table 
+# used for checking and removing shared species
+# Only used if $missing_spp_run=="t"
+prev_run="20230524"
+
+#######################################
 # Database parameters
+#######################################
+
 # SCH is the schema of the main BIEN analytical DB (source schema)
 # SCH_RMD is range model data schema (target schema, where data tables generated)
 DB="vegbien"
 USER="bien"
 SCH="analytical_db"
 SCH_RMD="range_data"
+
+#######################################
+# Paths, file names & misc
+#######################################
 
 # Base directory
 # Full path to parent directory of module base directory (i.e., parent of ranges/)
@@ -66,10 +91,11 @@ basedir="/home/boyle/bien"
 includesdir=$basedir"/includes/sh"
 
 # Name of shared functions file
+# Just name, not path
 f_func="functions.sh"
 
 # Process name for email notifications
-pname="BIEN range model data extract on ${run}"
+pname="BIEN range model data run \"${run}\""
 
 # Default email address for notifications (start, finish, error)
 # Used if you supply command line parameter -m 
@@ -77,8 +103,8 @@ email="bboyle@email.arizona.edu"
 email="ojalaquellueva@gmail.com"
 
 #############################################################
-# The remaining parameters shouldn't change unless you 
-# fundamentally restructure the application
+# The remaining parameters generally shouldn't change unless 
+# you fundamentally restructure the application
 #############################################################
 
 # Working directory 
@@ -96,15 +122,20 @@ rm_datadir=$datadir"/rm_data_${run}"
 # range model species data directory 
 rmspp_datadir=$rm_datadir"/species"
 
-#
+#######################
 # Table and file names
-#
+#######################
 
 # Range model data table
 TBL_RMD="range_model_data_raw_${run}"
 
 # Range model species table
 TBL_RMS="range_model_species_${run}"
+
+# Range model species table from previous run
+# Needed for flagging and deleting shared species
+# Used only for missing species runs
+TBL_RMS_PREV="range_model_species_${prev_run}"
 
 # Range model data statistics table
 TBL_RMDS="range_model_data_stats_${run}"

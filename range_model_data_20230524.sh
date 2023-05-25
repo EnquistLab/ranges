@@ -1,39 +1,65 @@
 #!/bin/bash
 
+########################################################################
+# Version information
+# This is a versioned copy of range_model_data.sh, as run on 
+# 2023-05-24, using parameters in params_20230524.sh.
+# Extracts range model data using strict filtering of native observations
+# I.e., "is_introduced=0"
+########################################################################
+
+
 #########################################################################
-# Extract BIEN 4.2 range model data
+# Extract BIEN range model data
 #
-# NOT FOR PRODUCTION RUN. Only purpose is to test effect of filtering
-# out introduced observations on total species count
+# This is the main range model data extraction script. All parameters are set in
+# the single parameters file, which has a date suffix. Once a script has
+# been used for a production extract of range model data (and the actual models
+# produced, served publicly from BIEN applications and/or used in publications),
+# all changes should be committed, pushed to GitHub and a tag (version number) 
+# assigned and also pushed. Rather than semantic versioning, the most accurate
+# tag is $run (yyyymmdd), as assigned in the params file. Given this 
+# information, the version numbers of the BIEN DB and all validation applications 
+# can be reconstructed.
 #
 # Notes:
-#  1. Observations for each species saved to separate file (make sure containing
-#     directory exists)
-#  2. Species attributes saved to single, separate file
-#  3. Directories $rm_datadir and $rmspp_datadir must exist
-#  4. Same as November 2022 run, except is_introduced=1 only (no nulls)
-#
+#  1. All parameters set in params.sh
+#  1. Range model data tables saved to schema "range_data"
+#  2. Directories $rm_datadir and $rmspp_datadir must also exist (if savedata="t")
+#  3. If savedata="t":
+#		* Data exported to filesystem, to directories $rm_datadir (see params.sh)
+#		* The above directory will be created if not already exist
+#		* Observations for each species saved to separate files in subdir species/
+#		* Species attributes saved to separate file
 #########################################################################
 
-# Comment-block tags - Use for all temporary comment blocks
+# Name of parameters file. 
+# CRITICAL! This is the only parameter you need to set in this file.
+f_params="params_20230524.sh"  # BIEN 4.2.6 range model data production run 2023-05-24
 
-#### TEMP ####
-# echo "WARNING: portions of script `basename "$BASH_SOURCE"` commented out!"
-## Start comment block
-# : <<'COMMENT_BLOCK_xxx'
+# Load parameters
+source "$f_params"  
 
-## End comment block
-# COMMENT_BLOCK_xxx
-#### TEMP ####
+if [ "$LIMIT" == "" ]; then
+	SQL_LIMIT=""
+else
+	SQL_LIMIT=" LIMIT ${LIMIT} "
+fi
+
+# Load generic functions
+source $includesdir"/${f_func}"	# Load functions file(s)
 
 #
 # Get command line parameters
+# Parameters set on the command will over-ride those set in the params 
+# file (see above)
 #  
 
 # Set defaults
 i="true"						# Interactive mode on by default
 e="true"						# Echo on by default
 verbose="false"					# Minimal progress output
+m="false"
 
 # Get options
 while [ "$1" != "" ]; do
@@ -53,85 +79,10 @@ while [ "$1" != "" ]; do
 done
 
 #
-# Parameters
+# Confirm operation
 #
 
-# Email address for notifications
-# You must supply command line parameter -m to use this
-email="bboyle@email.arizona.edu"
-
-# LIMIT clause for testing only
-# Set to empty string for production run 
-LIMIT=100
-LIMIT=""
-
-# Run date
-# MUST be of format yyyymmdd
-rundate="20230414"
-
-# Save data to filesystem (t|f)
-# if t then just produces postgres tables
-savedata="f"
-
-# Database params
-DB="vegbien"
-SCH="analytical_db"
-USER="bien"
-
-# Range model data table
-TBL_RMD="range_model_data_raw_${rundate}"
-
-# Range model species table
-TBL_RMS="range_model_species_${rundate}"
-
-# Base directory
-basedir="/home/boyle/bien"
-
-# Where are generic functions, etc?
-includesdir=$basedir"/includes/sh"
-
-# Working directory 
-wd=$basedir"/ranges"
-
-# Source code base directory (this script)
-srcdir=$wd"/src"
-
-# input data directory 
-datadir=$wd"/data"
-
-# range model data base directory 
-rm_datadir=$datadir"/rm_data_${rundate}"
-
-# range model species data directory 
-rmspp_datadir=$rm_datadir"/species"
-
-#
-# END Parameters. Remaining parameters set automatically.
-#
-
-if [ "$LIMIT" == "" ]; then
-	LIMITCLAUSE=""
-else
-	LIMITCLAUSE=" LIMIT ${LIMIT} "
-fi
-
-# Range model metadata file
-# Note: individual species data in separate files [Genus]_[species].csv
-sdm_spp_outfile="${TBL_RMS}.csv"
-
-# Load generic functions
-source $includesdir"/functions.sh"	# Load functions file(s)
-
-# Process name for emails
-pname="BIEN range model data extract on ${rundate}"
-
-#
-# confirm operation and send email
-#
-
-# startup_msg="Run process \""$pname"\"?"
-# confirm "$startup_msg";
-
+# Set custom display values for confirmation message
 if [ "$LIMIT" == "" ]; then
 	runtype="production"
 	limit_disp="[no limit]"
@@ -140,43 +91,37 @@ else
 	limit_disp="$LIMIT"
 fi
 
-
 if [[ "$i" = "true" && -z ${master+x} ]]; then 
 
 	# Reset confirmation message
 	msg_conf="$(cat <<-EOF
 
-	Starting process '$pname' with the following parameters: 
+	Run process '$pname' with the following parameters: 
 	
 	Database:		$DB
-	Schema:			$SCH
+	Source schema:		$SCH
+	Destination schema:	$SCH_RMD
 	User:			$USER
 	Raw data table:		$TBL_RMD
 	Raw species table:	$TBL_RMS
 	Save data to files:	$savedata
-	Species file:		$sdm_spp_outfile
+	Species file:		$rms_outfile
 	Model data dir: 	$rm_datadir
 	Species data dir: 	$rmspp_datadir
-	Run date:		$rundate
+	Run date:		$run
 	Run type:		$runtype
 	Record limit:		$limit_disp
+	Send notifications?:	$m
 EOF
 	)"		
 	confirm "$msg_conf"
 fi
 
-
-
-# Start timing & process ID
+# Start timer & get process ID
 start=`date +%s%N`; prev=$start
 pid=$$
 
 # Send notification email if this option set
-#source "$includesdir/mail_process_start.sh"	# Email notification
-
-echo ""; echo "------ Begin process '$pname' ------"
-echo ""
-
 if [ "$m" == "true" ]; then
 	source "${includesdir}/mail_process_start.sh"
 fi
@@ -185,26 +130,63 @@ fi
 # Main
 #
 
-echoi $i -n "Extracting range model data to table ${TBL_RMD}..."
+echoi $i " "
+echoi $i "------ Begin process '$pname' -----"
+echoi $i " "
 
-# Set index names
-TBL_RMD_SSB_IDX="${TBL_RMD}_scrubbed_species_binomial_idx"
-TBL_RMD_SNS_IDX="${TBL_RMD}_species_nospace_idx"
-PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -v SCH="$SCH" -v TBL_RMD="${TBL_RMD}" -v TBL_RMD_SSB_IDX="${TBL_RMD_SSB_IDX}" -v TBL_RMD_SNS_IDX="${TBL_RMD_SNS_IDX}" -v LIMITCLAUSE="${LIMITCLAUSE}" -f "${srcdir}/sql/range_model_data_raw_${rundate}.sql"
-source "${includesdir}/check_status.sh"
-
-echoi $i -n "Extracting range model species to table ${TBL_RMS}..."
-PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -v SCH="$SCH" -v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}" -f "${srcdir}/sql/range_model_species.sql"
+echoi $i -n "Creating schema ${SCH_RMD} if not exists..."
+sql="CREATE SCHEMA IF NOT EXISTS ${SCH_RMD}"
+PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
 source "${includesdir}/check_status.sh"
 
 if [ "$savedata" == "t" ]; then
-	echoi $i -n "Creating range model data directories (if not exist)..."
-	mkdir -p "${rmspp_datadir}"
-	source "${includesdir}/check_status.sh"
+	echoi $i -n "Creating range model data directories..."
+	
+	if [ -d "${rm_datadir}" ]; then
+		echo "ERROR: directory ${rm_datadir} already exists! Delete before running this script."
+		exit 1
+	else
+		mkdir -p "${rmspp_datadir}"
+		source "${includesdir}/check_status.sh"
+	fi
+fi 
+
+# Extract raw observations
+echoi $i -n "Extracting range model data to table ${TBL_RMD}..."
+PGOPTIONS='--client-min-messages=warning' \
+psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+-v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
+-v TBL_RMD="${TBL_RMD}" \
+-v TBL_RMD_SSB_IDX="${TBL_RMD_SSB_IDX}" -v TBL_RMD_SNS_IDX="${TBL_RMD_SNS_IDX}" \
+-v SQL_SELECT="${SQL_SELECT}" -v SQL_WHERE="${SQL_WHERE}" -v SQL_LIMIT="${SQL_LIMIT}" \
+-f "${srcdir}/sql/range_model_data_raw.sql"
+source "${includesdir}/check_status.sh"
+
+# Delete observations where taxonomic status unresolved AND species has >1 status
+echoi $i -n "Deleting observations where taxonomic_status=\"Unresolved\" and species has >1 taxonomic status..."
+# Extract table of raw data
+PGOPTIONS='--client-min-messages=warning' \
+psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+-v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
+-v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}" -v TBL_RMDS="${TBL_RMDS}" \
+-f "${srcdir}/sql/multistatus_species.sql"
+source "${includesdir}/check_status.sh"
+
+# Extract table of species and attributes
+echoi $i -n "Extracting range model species to table ${TBL_RMS}..."
+PGOPTIONS='--client-min-messages=warning' \
+psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+-v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
+-v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}"  -v TBL_RMDS="${TBL_RMDS}" \
+-f "${srcdir}/sql/range_model_species.sql"
+source "${includesdir}/check_status.sh"
+
+if [ "$savedata" == "t" ]; then
 
 	echoi $i -n "Dumping range model species to file..."
-	sql="\copy (SELECT DISTINCT species_nospace FROM ${SCH}.${TBL_RMD} ORDER BY species_nospace) TO '${rm_datadir}/bien_ranges_species' WITH (FORMAT CSV)"
-	PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
+	sql="\copy (SELECT DISTINCT species_nospace FROM ${SCH_RMD}.${TBL_RMD} ORDER BY species_nospace) TO '${rm_datadir}/range_model_species' WITH (FORMAT CSV)"
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
 	source "${includesdir}/check_status.sh"
 
 	# Dump range model data, one file per species, no header
@@ -215,16 +197,19 @@ if [ "$savedata" == "t" ]; then
 		f_species="${SPECIES}.csv"
 		echo -ne "\rDumping range model data by species: ${SPECIES}            "
 		lastspecies=$SPECIES
-	sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv header"
-	PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
-	done < ${rm_datadir}/bien_ranges_species
+		sql="\copy (SELECT taxonobservation_id, species_nospace AS species, latitude, longitude FROM ${SCH_RMD}.${TBL_RMD} WHERE species_nospace='${SPECIES}' ORDER BY taxonobservation_id) to '${rmspp_datadir}/${f_species}' csv header"
+		PGOPTIONS='--client-min-messages=warning' \
+		psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
+	done < ${rm_datadir}/range_model_species
+
 	echo -ne "\rDumping range model data by species: "$lastspecies"..."
 	source "${includesdir}/check_status.sh"
 
 	# Dump range model species attribute file, CSV with header
 	echoi $i -n "Exporting range model species attributes file..."
-	sql="\copy (SELECT species_nospace AS species, family, taxonomic_status, higher_plant_group, is_vasc, growth_form FROM ${SCH}.${TBL_RMS} ORDER BY species_nospace ) to '${rm_datadir}/${sdm_spp_outfile}' csv header"
-	PGOPTIONS='--client-min-messages=warning' psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c  "${sql}"
+	sql="\copy (SELECT species_nospace AS species, family, taxonomic_status, higher_plant_group, is_vasc, growth_form FROM ${SCH_RMD}.${TBL_RMS} ORDER BY species_nospace ) to '${rm_datadir}/${rms_outfile}' csv header"
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB --set ON_ERROR_STOP=1 -q -c "${sql}"
 	source "${includesdir}/check_status.sh"
 else
 	echoi $i "[Generated Postgres tables only; data not saved to filesystem]"

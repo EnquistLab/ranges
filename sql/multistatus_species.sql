@@ -40,7 +40,7 @@ ADD PRIMARY KEY (scrubbed_species_binomial)
 DROP TABLE IF EXISTS :TBL_RMDS;
 CREATE TABLE :TBL_RMDS AS
 SELECT 
-'Before'::text AS period,
+'Before filtering multistatus species obs'::text AS period,
 (SELECT COUNT(*) FROM :TBL_RMD)::integer AS obs,
 (SELECT COUNT(*) FROM range_model_species_temp)::integer AS species_table_rows,
 (SELECT COUNT(DISTINCT scrubbed_species_binomial)::integer FROM range_model_species_temp)::integer AS species

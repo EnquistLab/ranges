@@ -75,7 +75,7 @@ species_table_rows,
 species
 )
 SELECT 
-'After'::text,
+'After filtering multistatus species obs'::text,
 (SELECT COUNT(*) FROM :TBL_RMD)::integer,
 (SELECT COUNT(*) FROM :TBL_RMS)::integer,
 (SELECT COUNT(DISTINCT scrubbed_species_binomial)::integer FROM :TBL_RMS)::integer
@@ -89,12 +89,12 @@ species_table_rows,
 species
 )
 SELECT
-'Diff'::text,
-(SELECT obs FROM :TBL_RMDS WHERE period='Before')::integer-
-(SELECT obs FROM :TBL_RMDS WHERE period='After')::integer,
-(SELECT species_table_rows FROM :TBL_RMDS WHERE period='Before')::integer-
-(SELECT species_table_rows FROM :TBL_RMDS WHERE period='After')::integer,
-(SELECT species FROM :TBL_RMDS WHERE period='Before')::integer-
-(SELECT species FROM :TBL_RMDS WHERE period='After')::integer
+'Difference'::text,
+(SELECT obs FROM :TBL_RMDS WHERE period='Before filtering multistatus species obs')::integer-
+(SELECT obs FROM :TBL_RMDS WHERE period='After filtering multistatus species obs')::integer,
+(SELECT species_table_rows FROM :TBL_RMDS WHERE period='Before filtering multistatus species obs')::integer-
+(SELECT species_table_rows FROM :TBL_RMDS WHERE period='After filtering multistatus species obs')::integer,
+(SELECT species FROM :TBL_RMDS WHERE period='Before filtering multistatus species obs')::integer-
+(SELECT species FROM :TBL_RMDS WHERE period='After filtering multistatus species obs')::integer
 ;
 

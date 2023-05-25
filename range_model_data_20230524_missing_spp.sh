@@ -1,5 +1,14 @@
 #!/bin/bash
 
+########################################################################
+# Version information
+# Companion script to range_model_data_20230524.sh. This version extracts
+# species *NOT MODELLED* due to exclusion by filter "is_introduced=0".
+# I.e., it extract the additional species & data that would have been 
+# included has observations with NULL for is_introduced been included:
+# ( is_introduced=0 OR is_introduced IS NULL )
+#######################################################################
+
 #########################################################################
 # Extract BIEN range model data - missing species supplemental run
 #
@@ -101,15 +110,6 @@ else
 	limit_disp="$LIMIT"
 fi
 
-if [ "$missing_spp_run" == "t" ]; then
-	prev_run_disp="$prev_run"
-	prev_run_spp_tbl_disp="$TBL_RMS_PREV"
-else
-	prev_run_disp="[n/a]"
-	prev_run_spp_tbl_disp="[n/a]"
-fi
-
-
 if [[ "$i" = "true" && -z ${master+x} ]]; then 
 
 	# Reset confirmation message
@@ -117,19 +117,17 @@ if [[ "$i" = "true" && -z ${master+x} ]]; then
 
 	Run process '$pname' with the following parameters: 
 	
-	Run code:		$run
-	Prev. run:		$prev_run_disp
 	Database:		$DB
 	Source schema:		$SCH
 	Destination schema:	$SCH_RMD
 	User:			$USER
 	Raw data table:		$TBL_RMD
 	Raw species table:	$TBL_RMS
-	Prev species table:	$prev_run_spp_tbl_disp
 	Save data to files:	$savedata
 	Species file:		$rms_outfile
 	Model data dir: 	$rm_datadir
 	Species data dir: 	$rmspp_datadir
+	Run date:		$run
 	Run type:		$runtype
 	Record limit:		$limit_disp
 	Send notifications?:	$m

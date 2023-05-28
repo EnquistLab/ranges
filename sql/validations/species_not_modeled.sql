@@ -18,9 +18,9 @@ These queries test the above hypothesis
 
 \set SCH_ADB analytical_db
 \set SCH_RMD range_data
-\set SQL_LIMIT 'LIMIT 10000'
+-- \set SQL_LIMIT 'LIMIT 1000'
 \set SQL_LIMIT ''
-\set TBL_SDM_SPP range_model_species_20230418
+\set TBL_SDM_SPP range_model_species_20230524
 
 \c vegbien
 set search_path to :SCH_RMD;
@@ -29,13 +29,16 @@ set search_path to :SCH_RMD;
 DROP TABLE IF EXISTS bien_species;
 CREATE TABLE bien_species AS
 SELECT scrubbed_species_binomial, 
+	string_agg(DISTINCT is_introduced::text, ',' 
+	ORDER BY is_introduced::text) AS is_introduced,
 	string_agg(DISTINCT scrubbed_taxonomic_status, ',' 
 	ORDER BY scrubbed_taxonomic_status) AS taxonomic_status,
 	string_agg(DISTINCT native_status, ',' 
 	ORDER BY native_status) AS native_status,
 	COUNT(*) AS obs
 	FROM (
-	SELECT scrubbed_species_binomial, scrubbed_taxonomic_status, native_status
+	SELECT scrubbed_species_binomial, scrubbed_taxonomic_status, 
+		native_status, is_introduced
 	FROM :"SCH_ADB".view_full_occurrence_individual
 	-- START BIEN range model data WHERE clause, minus filter on "is_introduced"
 	WHERE scrubbed_species_binomial IS NOT NULL 
@@ -78,10 +81,10 @@ WHERE a.scrubbed_species_binomial=b.scrubbed_species_binomial
 -- Compare native status of modeled vs not modeled
 DROP TABLE IF EXISTS spp_not_modeled_native_status;
 CREATE TABLE spp_not_modeled_native_status AS
-SELECT is_sdm_species, native_status, sum(obs) AS obs, count(*) AS species
+SELECT is_sdm_species, is_introduced, native_status, sum(obs) AS obs, count(*) AS species
 FROM bien_species
-GROUP BY is_sdm_species, native_status
-ORDER BY is_sdm_species, native_status
+GROUP BY is_sdm_species, is_introduced, native_status
+ORDER BY is_sdm_species, is_introduced, native_status
 ;
 SELECT * FROM spp_not_modeled_native_status;
 

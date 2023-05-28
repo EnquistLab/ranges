@@ -6,16 +6,6 @@
 -- new species, not include in run 1, are needed for run 2.
 -- -------------------------------------------------------------------------------
 
-/* 
--- Aliases passed from calling script:
-\set SCH_RMD range_data
-\set TBL_SPP_RUN1 range_model_species_20230418
-\set TBL_SPP_RUN2 range_model_species_20230524
-\set TBL_DATA_RUN2 range_model_data_raw_20230524
-\set TBL_STATS_RUN2 range_model_data_stats_20230524
-*/
-
-
 --
 -- Connect to schema
 -- 
@@ -34,8 +24,8 @@ SET is_in_run1=1
 FROM :TBL_SPP_RUN1 b
 WHERE a.scrubbed_species_binomial=b.scrubbed_species_binomial
 ;
-\set IDX_SHARED_SPP :TBL_SPP_RUN2 _is_in_run1_idx
-CREATE INDEX :IDX_SHARED_SPP ON :TBL_SPP_RUN2(is_in_run1);
+\set shared_ssp_idx :TBL_SPP_RUN2 _is_in_run1_idx
+CREATE INDEX :shared_ssp_idx ON :TBL_SPP_RUN2(is_in_run1);
 
 --
 -- Summarize the result & save
@@ -104,7 +94,7 @@ SET is_in_run1=1
 FROM :TBL_SPP_RUN1 b
 WHERE a.scrubbed_species_binomial=b.scrubbed_species_binomial
 ;
-CREATE INDEX :IDX_SHARED_SPP ON :TBL_SPP_RUN2(is_in_run1);
+CREATE INDEX :shared_ssp_idx ON :TBL_SPP_RUN2(is_in_run1);
 
 --
 -- Summarize the results & save

@@ -13,7 +13,8 @@ DROP TABLE IF EXISTS :TBL_RMD;
 CREATE TABLE :TBL_RMD AS
 :SQL_SELECT
 FROM :"SCH"."view_full_occurrence_individual"
-:SQL_WHERE
+:SQL_WHERE_MAIN
+:SQL_WHERE_INTRODUCED
 :SQL_LIMIT
 ;
 
@@ -55,13 +56,13 @@ WHERE taxonomic_status='No opinion'
 -- Add indexes
 --
 
-\set TBL_RMD_SSB_IDX :TBL_RMD'_scrubbed_species_binomial_idx'
-DROP INDEX IF EXISTS :"TBL_RMD_SSB_IDX";
-CREATE INDEX :"TBL_RMD_SSB_IDX" ON :TBL_RMD (scrubbed_species_binomial);
+\set tbl_rmd_ssb_idx :TBL_RMD _scrubbed_species_binomial_idx
+DROP INDEX IF EXISTS :"tbl_rmd_ssb_idx";
+CREATE INDEX :"tbl_rmd_ssb_idx" ON :TBL_RMD (scrubbed_species_binomial);
 
-\set TBL_RMD_SNS_IDX :TBL_RMD'_species_nospace_idx'
-DROP INDEX IF EXISTS :"TBL_RMD_SNS_IDX";
-CREATE INDEX :"TBL_RMD_SNS_IDX" ON :TBL_RMD (species_nospace);
+\set tbl_rmd_sns_idx :TBL_RMD _species_nospace_idx
+DROP INDEX IF EXISTS :"tbl_rmd_sns_idx";
+CREATE INDEX :"tbl_rmd_sns_idx" ON :TBL_RMD (species_nospace);
 
 
 

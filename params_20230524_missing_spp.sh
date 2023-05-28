@@ -1,5 +1,6 @@
 #############################################################
 # Parameters
+# For run 20230524_missing_spp on 2023-05-27
 #############################################################
 
 # Run code
@@ -10,49 +11,16 @@
 # Missing species run format: yyyymmdd_missing_spp
 run="20230524_missing_spp"
 
-# The SELECT clause of columns to return
-# Wrapping in HEREDOC to allow line endings without crashing psql command
-SQL_SELECT=$(cat << HEREDOC
-
-SELECT taxonobservation_id, 
-scrubbed_species_binomial, latitude, longitude, 
-scrubbed_taxonomic_status AS taxonomic_status, higher_plant_group, 
-country, native_status, is_introduced, 
-observation_type, event_date
-
-HEREDOC
-)
-
-# The WHERE clause used to filter range model for this run
-# Main run: use "is_introduced=0" 
-# Missing species run: use "is_introduced IS NULL"
-SQL_WHERE=$(cat << HEREDOC
-
-WHERE scrubbed_species_binomial IS NOT NULL 
-AND higher_plant_group IN ('bryophytes', 'ferns and allies','flowering plants','gymnosperms (conifers)', 'gymnosperms (non-conifer)') 
-AND is_invalid_latlong=0 
-AND is_geovalid = 1 
-AND (georef_protocol is NULL OR georef_protocol<>'county_centroid') 
-AND (is_centroid IS NULL OR is_centroid=0) 
-AND is_location_cultivated IS NULL 
-AND (is_cultivated_observation = 0 OR is_cultivated_observation IS NULL) 
-AND is_introduced IS NULL
-AND observation_type IN ('plot','specimen','literature','checklist') 
-AND ( EXTRACT(YEAR FROM event_date)>=1950 OR event_date IS NULL )
-
-HEREDOC
-)
-
-# SQL record limit for testing with small batch of records
+ SQL record limit for testing with small batch of records
 # Set to empty string to remove limit for production run 
-LIMIT=100
+LIMIT=10000
 LIMIT=""
 
 # Save data to filesystem (t|f)
 # if "f" then just produces postgres tables
 savedata="t"
 
-#######################################
+########################################
 # Supplemental run parameters
 #######################################
 
@@ -66,6 +34,47 @@ missing_spp_run="t"
 # used for checking and removing shared species
 # Only used if $missing_spp_run=="t"
 prev_run="20230524"
+
+########################################
+# WHERE clause parameters
+#######################################
+
+# The SELECT clause of columns to return
+# Wrapping in HEREDOC enables multi-line parameter without 
+# crashing psql command
+SQL_SELECT=$(cat << HEREDOC
+SELECT taxonobservation_id, 
+scrubbed_species_binomial, latitude, longitude, 
+scrubbed_taxonomic_status AS taxonomic_status, higher_plant_group, 
+country, native_status, is_introduced, 
+observation_type, event_date
+HEREDOC
+)
+
+# The main WHERE clause used to filter range model for this run
+# Do NOT include the filter on 'is_introduced'; that goes in separate
+# parameter SQL_WHERE_INTRODUCED, below.
+SQL_WHERE_MAIN=$(cat << HEREDOC
+WHERE scrubbed_species_binomial IS NOT NULL 
+AND higher_plant_group IN ('bryophytes', 'ferns and allies','flowering plants','gymnosperms (conifers)', 'gymnosperms (non-conifer)') 
+AND is_invalid_latlong=0 
+AND is_geovalid = 1 
+AND (georef_protocol is NULL OR georef_protocol<>'county_centroid') 
+AND (is_centroid IS NULL OR is_centroid=0) 
+AND is_location_cultivated IS NULL 
+AND (is_cultivated_observation = 0 OR is_cultivated_observation IS NULL) 
+AND observation_type IN ('plot','specimen','literature','checklist') 
+AND ( EXTRACT(YEAR FROM event_date)>=1950 OR event_date IS NULL )
+HEREDOC
+)
+
+# Just the "is_introduced" component of the WHERE clause
+# Begin with 'AND ' instead of 'WHERE' as the filter, if used, 
+# will be  added to the main WHERE clause (above). 
+SQL_WHERE_INTRODUCED=$(cat << HEREDOC
+AND ( is_introduced=0 OR is_introduced IS NULL )
+HEREDOC
+)
 
 #######################################
 # Database parameters

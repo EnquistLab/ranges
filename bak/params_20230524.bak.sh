@@ -3,55 +3,15 @@
 # For main range model run on 2023-05-24
 #############################################################
 
-# Run date
-# CRITICAL! This identifies a unique model run
-# Also used to form names of run-specific postgres tables and data directory
-# MUST be unix-friendly (no spaces, etc.)
-# Preferred format: yyyymmdd
-# Add suffix if a later part of a multiple-part run: yyyymmdd_suffix
-# E.g., "20230405_missing_spp"
-run="20230524"
-
-# SQL record limit for testing with small batch of records
-# Set to empty string to remove limit for production run 
-LIMIT=10000
-LIMIT=""
-
-# Save data to filesystem (t|f)
-# if "f" then just produces postgres tables
-savedata="t"
-
-########################################
-# Supplemental run parameters
-#######################################
-
-# Is this a missing species run? (t|f)
-# False (f): a main run with is_introduced=1
-# True (t): a supplemental missing species run with is_introduce=NULL
-missing_spp_run="f"
-
-# Previous run code
-# CRITICAL if $missing_spp_run=="t"
-# Ignored if $missing_spp_run=="f"
-# Used to form name of previous run species table, which 
-# is used for checking and removing shared species
-prev_run=""
-
-########################################
-# WHERE clause parameters
-#######################################
-
 # The SELECT clause of columns to return
 # Wrapping in HEREDOC enables multi-line parameter without 
 # crashing psql command
 SQL_SELECT=$(cat << HEREDOC
-
 SELECT taxonobservation_id, 
 scrubbed_species_binomial, latitude, longitude, 
 scrubbed_taxonomic_status AS taxonomic_status, higher_plant_group, 
 country, native_status, is_introduced, 
 observation_type, event_date
-
 HEREDOC
 )
 
@@ -59,7 +19,6 @@ HEREDOC
 # Do NOT include the filter on 'is_introduced'; that goes in separate
 # parameter SQL_WHERE_INTRODUCED, below.
 SQL_WHERE_MAIN=$(cat << HEREDOC
-
 WHERE scrubbed_species_binomial IS NOT NULL 
 AND higher_plant_group IN ('bryophytes', 'ferns and allies','flowering plants','gymnosperms (conifers)', 'gymnosperms (non-conifer)') 
 AND is_invalid_latlong=0 
@@ -70,7 +29,6 @@ AND is_location_cultivated IS NULL
 AND (is_cultivated_observation = 0 OR is_cultivated_observation IS NULL) 
 AND observation_type IN ('plot','specimen','literature','checklist') 
 AND ( EXTRACT(YEAR FROM event_date)>=1950 OR event_date IS NULL )
-
 HEREDOC
 )
 
@@ -78,11 +36,27 @@ HEREDOC
 # Begin with 'AND ' instead of 'WHERE' as the filter, if used, 
 # will be  added to the main WHERE clause (above). 
 SQL_WHERE_INTRODUCED=$(cat << HEREDOC
-
 AND is_introduced=1 
-
 HEREDOC
 )
+
+# SQL record limit for testing with small batch of records
+# Set to empty string to remove limit for production run 
+LIMIT=100
+LIMIT=""
+
+# Run date
+# CRITICAL! This identifies a unique model run
+# Also used to form names of run-specific postgres tables and data directory
+# MUST be unix-friendly (no spaces, etc.)
+# Preferred format: yyyymmdd
+# Add suffix if a later part of a multiple-part run: yyyymmdd_suffix
+# E.g., "20230405_missing_spp"
+run="20230524"
+
+# Save data to filesystem (t|f)
+# if "f" then just produces postgres tables
+savedata="t"
 
 # Database parameters
 # SCH is the schema of the main BIEN analytical DB (source schema)

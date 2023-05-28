@@ -46,6 +46,8 @@
 # Name of parameters file. 
 # CRITICAL! This is the only parameter you need to set in this file.
 f_params="params_20230524_missing_spp.sh"  
+f_params="params_TEST.sh"  
+f_params="params_TEST_missing_spp.sh"  
 
 # Load parameters
 source "$f_params"  
@@ -178,8 +180,10 @@ PGOPTIONS='--client-min-messages=warning' \
 psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
 -v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
 -v TBL_RMD="${TBL_RMD}" \
--v TBL_RMD_SSB_IDX="${TBL_RMD_SSB_IDX}" -v TBL_RMD_SNS_IDX="${TBL_RMD_SNS_IDX}" \
--v SQL_SELECT="${SQL_SELECT}" -v SQL_WHERE="${SQL_WHERE}" -v SQL_LIMIT="${SQL_LIMIT}" \
+-v SQL_SELECT="${SQL_SELECT}" \
+-v SQL_WHERE_MAIN="${SQL_WHERE_MAIN}" \
+-v SQL_WHERE_INTRODUCED="${SQL_WHERE_INTRODUCED}" \
+-v SQL_LIMIT="${SQL_LIMIT}" \
 -f "${srcdir}/sql/range_model_data_raw.sql"
 source "${includesdir}/check_status.sh"
 
@@ -203,16 +207,37 @@ psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
 source "${includesdir}/check_status.sh"
 
 # Delete species & data for species shared with previous model run
-# This query is for supplemental runs only
+# These queries for supplemental run only
 if [ "$missing_spp_run" == "t" ]; then
+	echoi $i -n "Creating table \"bien_spp_native_status\"..."
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+	-v SCH_RMD="$SCH_RMD" -v SCH_ADB="$SCH" \
+	-v SQL_WHERE_MAIN="${SQL_WHERE_MAIN}" \
+	-v SQL_LIMIT="${SQL_LIMIT}" \
+	-v TBL_SPP_RUN1="${TBL_RMS_PREV}" \
+	-f "${srcdir}/sql/create_bien_spp_native_status.sql"
+	source "${includesdir}/check_status.sh"
+
 	echoi $i -n "Deleting species shared with previous run..."
 	PGOPTIONS='--client-min-messages=warning' \
 	psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
 	-v SCH_RMD="$SCH_RMD" \
 	-v TBL_SPP_RUN1="${TBL_RMS_PREV}" \
-	-v TBL_SPP_RUN2="${TBL_RMS}" -v TBL_DATA_RUN2="${TBL_RMD}" \
+	-v TBL_SPP_RUN2="${TBL_RMS}" \
+	-v TBL_DATA_RUN2="${TBL_RMD}" \
 	-v TBL_STATS_RUN2="${TBL_RMDS}" \
 	-f "${srcdir}/sql/delete_shared_species.sql"
+	source "${includesdir}/check_status.sh"
+
+	echoi $i -n "Deleting species with introduced observations..."
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+	-v SCH_RMD="$SCH_RMD" \
+	-v TBL_SPP_RUN2="${TBL_RMS}" \
+	-v TBL_DATA_RUN2="${TBL_RMD}" \
+	-v TBL_STATS_RUN2="${TBL_RMDS}" \
+	-f "${srcdir}/sql/delete_introduced_obs_species.sql"
 	source "${includesdir}/check_status.sh"
 fi
 

@@ -1,57 +1,24 @@
 #############################################################
 # Parameters
-# For main range model run on 2023-05-24
 #############################################################
 
-# Run date
+# Run code
 # CRITICAL! This identifies a unique model run
 # Also used to form names of run-specific postgres tables and data directory
 # MUST be unix-friendly (no spaces, etc.)
-# Preferred format: yyyymmdd
-# Add suffix if a later part of a multiple-part run: yyyymmdd_suffix
-# E.g., "20230405_missing_spp"
-run="20230524"
-
-# SQL record limit for testing with small batch of records
-# Set to empty string to remove limit for production run 
-LIMIT=10000
-LIMIT=""
-
-# Save data to filesystem (t|f)
-# if "f" then just produces postgres tables
-savedata="t"
-
-########################################
-# Supplemental run parameters
-#######################################
-
-# Is this a missing species run? (t|f)
-# False (f): a main run with is_introduced=1
-# True (t): a supplemental missing species run with is_introduce=NULL
-missing_spp_run="f"
-
-# Previous run code
-# CRITICAL if $missing_spp_run=="t"
-# Ignored if $missing_spp_run=="f"
-# Used to form name of previous run species table, which 
-# is used for checking and removing shared species
-prev_run=""
-
-########################################
-# WHERE clause parameters
-#######################################
+# Main run format: yyyymmdd
+# Missing species run format: yyyymmdd_missing_spp
+run="20230524_missing_spp"
 
 # The SELECT clause of columns to return
 # Wrapping in HEREDOC enables multi-line parameter without 
 # crashing psql command
 SQL_SELECT=$(cat << HEREDOC
-
 SELECT taxonobservation_id, 
 scrubbed_species_binomial, latitude, longitude, 
 scrubbed_taxonomic_status AS taxonomic_status, higher_plant_group, 
 country, native_status, is_introduced, 
 observation_type, event_date
-
 HEREDOC
 )
 
@@ -59,7 +26,6 @@ HEREDOC
 # Do NOT include the filter on 'is_introduced'; that goes in separate
 # parameter SQL_WHERE_INTRODUCED, below.
 SQL_WHERE_MAIN=$(cat << HEREDOC
-
 WHERE scrubbed_species_binomial IS NOT NULL 
 AND higher_plant_group IN ('bryophytes', 'ferns and allies','flowering plants','gymnosperms (conifers)', 'gymnosperms (non-conifer)') 
 AND is_invalid_latlong=0 
@@ -70,7 +36,6 @@ AND is_location_cultivated IS NULL
 AND (is_cultivated_observation = 0 OR is_cultivated_observation IS NULL) 
 AND observation_type IN ('plot','specimen','literature','checklist') 
 AND ( EXTRACT(YEAR FROM event_date)>=1950 OR event_date IS NULL )
-
 HEREDOC
 )
 
@@ -78,19 +43,48 @@ HEREDOC
 # Begin with 'AND ' instead of 'WHERE' as the filter, if used, 
 # will be  added to the main WHERE clause (above). 
 SQL_WHERE_INTRODUCED=$(cat << HEREDOC
-
-AND is_introduced=1 
-
+AND ( is_introduced=0 OR is_introduced IS NULL )
 HEREDOC
 )
 
+# SQL record limit for testing with small batch of records
+# Set to empty string to remove limit for production run 
+LIMIT=100
+LIMIT=""
+
+# Save data to filesystem (t|f)
+# if "f" then just produces postgres tables
+savedata="t"
+
+#######################################
+# Supplemental run parameters
+#######################################
+
+# Is this a missing species run? (t|f)
+# False (f): a main run with is_introduced=1
+# True (t): a supplemental missing species run with is_introduce=NULL
+missing_spp_run="t"
+
+# Previous run code
+# CRITICAL! Used to form name of previous run species table 
+# used for checking and removing shared species
+# Only used if $missing_spp_run=="t"
+prev_run="20230524"
+
+#######################################
 # Database parameters
+#######################################
+
 # SCH is the schema of the main BIEN analytical DB (source schema)
 # SCH_RMD is range model data schema (target schema, where data tables generated)
 DB="vegbien"
 USER="bien"
 SCH="analytical_db"
 SCH_RMD="range_data"
+
+#######################################
+# Paths, file names & misc
+#######################################
 
 # Base directory
 # Full path to parent directory of module base directory (i.e., parent of ranges/)
@@ -101,10 +95,11 @@ basedir="/home/boyle/bien"
 includesdir=$basedir"/includes/sh"
 
 # Name of shared functions file
+# Just name, not path
 f_func="functions.sh"
 
 # Process name for email notifications
-pname="BIEN range model data extract on ${run}"
+pname="BIEN range model data run \"${run}\""
 
 # Default email address for notifications (start, finish, error)
 # Used if you supply command line parameter -m 
@@ -112,8 +107,8 @@ email="bboyle@email.arizona.edu"
 email="ojalaquellueva@gmail.com"
 
 #############################################################
-# The remaining parameters shouldn't change unless you 
-# fundamentally restructure the application
+# The remaining parameters generally shouldn't change unless 
+# you fundamentally restructure the application
 #############################################################
 
 # Working directory 
@@ -131,15 +126,20 @@ rm_datadir=$datadir"/rm_data_${run}"
 # range model species data directory 
 rmspp_datadir=$rm_datadir"/species"
 
-#
+#######################
 # Table and file names
-#
+#######################
 
 # Range model data table
 TBL_RMD="range_model_data_raw_${run}"
 
 # Range model species table
 TBL_RMS="range_model_species_${run}"
+
+# Range model species table from previous run
+# Needed for flagging and deleting shared species
+# Used only for missing species runs
+TBL_RMS_PREV="range_model_species_${prev_run}"
 
 # Range model data statistics table
 TBL_RMDS="range_model_data_stats_${run}"

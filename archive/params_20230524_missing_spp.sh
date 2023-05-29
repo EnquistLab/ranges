@@ -71,8 +71,12 @@ HEREDOC
 # Just the "is_introduced" component of the WHERE clause
 # Begin with 'AND ' instead of 'WHERE' as the filter, if used, 
 # will be  added to the main WHERE clause (above). 
+# SQL_WHERE_INTRODUCED=$(cat << HEREDOC
+# AND ( is_introduced=0 OR is_introduced IS NULL )
+# HEREDOC
+# )
 SQL_WHERE_INTRODUCED=$(cat << HEREDOC
-AND ( is_introduced=0 OR is_introduced IS NULL )
+AND ( native_status in ('A', 'UNK') or native_status is null )
 HEREDOC
 )
 

@@ -1,21 +1,40 @@
 #!/bin/bash
 
 #########################################################################
-# Extract BIEN range model data
+# Extract BIEN range model data - missing species supplemental run
 #
-# This is the main range model data extraction script. All parameters are set in
+# BIEN range model data extraction script. All parameters are set in
 # the single parameters file, which has a date suffix. Once a script has
 # been used for a production extract of range model data (and the actual models
 # produced, served publicly from BIEN applications and/or used in publications),
 # all changes should be committed, pushed to GitHub and a tag (version number) 
-# assigned and also pushed. Rather than semantic versioning, the most accurate
-# tag is $run (yyyymmdd), as assigned in the params file. Given this 
-# information, the version numbers of the BIEN DB and all validation applications 
-# can be reconstructed.
+# assigned and also pushed. 
+#
+# Each run must be assigned a unique code, using the start date of the 
+# run, in the format yyyymmdd. For a supplemental runs to extract additional
+# species missed in first (main) run, the format is "[yyyymmdd]_missing_spp".
+# After the run, archive the main script and parameters file by saving a 
+# copy of each file, with the run code inserted as a suffix between the file
+# basename and the ".sh" extension.  
+#
+# Note on missing species supplemental runs
+# 
+# Missing species (supplemental) runs supplement main range model data 
+# run by extracting data for species missed due to 
+# strict filtering of non-native observations (i.e., "is_introduced=0").
+# This version includes only species not present in the first run which
+# have one or more values of is_introduced=NULL (observations with 
+# is_introduced=1 are never included). Flag is_introduced can be NULL 
+# when either (a) the species does not appear in any NSR checklists
+# (in which case, native_status=NULL) or (b) there is no checklist for 
+# the region of observation (in which case, native_status="UNK" and 
+# native_status_reason="Status unknown, no checklists for region of observation". 
+# May also include observations of species with a subset of values with 
+# is_introduced=NULL and the remainder with is_introduced=1. 
 #
 # Notes:
-#  1. All parameters set in params.sh
-#  1. Range model data tables saved to schema "range_data"
+#  1. All parameters set in params_[run].sh
+#  1. Range model data postgres tables saved to schema "range_data"
 #  2. Directories $rm_datadir and $rmspp_datadir must also exist (if savedata="t")
 #  3. If savedata="t":
 #		* Data exported to filesystem, to directories $rm_datadir (see params.sh)
@@ -26,7 +45,9 @@
 
 # Name of parameters file. 
 # CRITICAL! This is the only parameter you need to set in this file.
-f_params="params_20230524.sh"  # BIEN 4.2.6 range model data production run 2023-05-24
+f_params="params_TEST.sh"  
+f_params="params_TEST_missing_spp.sh"  
+f_params="params_20230524_missing_spp.sh"  
 
 # Load parameters
 source "$f_params"  
@@ -82,6 +103,15 @@ else
 	limit_disp="$LIMIT"
 fi
 
+if [ "$missing_spp_run" == "t" ]; then
+	prev_run_disp="$prev_run"
+	prev_run_spp_tbl_disp="$TBL_RMS_PREV"
+else
+	prev_run_disp="[n/a]"
+	prev_run_spp_tbl_disp="[n/a]"
+fi
+
+
 if [[ "$i" = "true" && -z ${master+x} ]]; then 
 
 	# Reset confirmation message
@@ -89,17 +119,19 @@ if [[ "$i" = "true" && -z ${master+x} ]]; then
 
 	Run process '$pname' with the following parameters: 
 	
+	Run code:		$run
+	Prev. run:		$prev_run_disp
 	Database:		$DB
 	Source schema:		$SCH
 	Destination schema:	$SCH_RMD
 	User:			$USER
 	Raw data table:		$TBL_RMD
 	Raw species table:	$TBL_RMS
+	Prev species table:	$prev_run_spp_tbl_disp
 	Save data to files:	$savedata
 	Species file:		$rms_outfile
 	Model data dir: 	$rm_datadir
 	Species data dir: 	$rmspp_datadir
-	Run date:		$run
 	Run type:		$runtype
 	Record limit:		$limit_disp
 	Send notifications?:	$m
@@ -148,8 +180,10 @@ PGOPTIONS='--client-min-messages=warning' \
 psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
 -v SCH="$SCH" -v SCH_RMD="$SCH_RMD" \
 -v TBL_RMD="${TBL_RMD}" \
--v TBL_RMD_SSB_IDX="${TBL_RMD_SSB_IDX}" -v TBL_RMD_SNS_IDX="${TBL_RMD_SNS_IDX}" \
--v SQL_SELECT="${SQL_SELECT}" -v SQL_WHERE="${SQL_WHERE}" -v SQL_LIMIT="${SQL_LIMIT}" \
+-v SQL_SELECT="${SQL_SELECT}" \
+-v SQL_WHERE_MAIN="${SQL_WHERE_MAIN}" \
+-v SQL_WHERE_INTRODUCED="${SQL_WHERE_INTRODUCED}" \
+-v SQL_LIMIT="${SQL_LIMIT}" \
 -f "${srcdir}/sql/range_model_data_raw.sql"
 source "${includesdir}/check_status.sh"
 
@@ -171,6 +205,41 @@ psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
 -v TBL_RMD="${TBL_RMD}" -v TBL_RMS="${TBL_RMS}"  -v TBL_RMDS="${TBL_RMDS}" \
 -f "${srcdir}/sql/range_model_species.sql"
 source "${includesdir}/check_status.sh"
+
+# Delete species & data for species shared with previous model run
+# These queries for supplemental run only
+if [ "$missing_spp_run" == "t" ]; then
+	echoi $i -n "Creating table \"bien_spp_native_status\"..."
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+	-v SCH_RMD="$SCH_RMD" -v SCH_ADB="$SCH" \
+	-v SQL_WHERE_MAIN="${SQL_WHERE_MAIN}" \
+	-v SQL_LIMIT="${SQL_LIMIT}" \
+	-v TBL_SPP_RUN1="${TBL_RMS_PREV}" \
+	-f "${srcdir}/sql/create_bien_spp_native_status.sql"
+	source "${includesdir}/check_status.sh"
+
+	echoi $i -n "Deleting species shared with previous run..."
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+	-v SCH_RMD="$SCH_RMD" \
+	-v TBL_SPP_RUN1="${TBL_RMS_PREV}" \
+	-v TBL_SPP_RUN2="${TBL_RMS}" \
+	-v TBL_DATA_RUN2="${TBL_RMD}" \
+	-v TBL_STATS_RUN2="${TBL_RMDS}" \
+	-f "${srcdir}/sql/delete_shared_species.sql"
+	source "${includesdir}/check_status.sh"
+
+	echoi $i -n "Deleting NSR species & keeping species with unknown native status only..."
+	PGOPTIONS='--client-min-messages=warning' \
+	psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
+	-v SCH_RMD="$SCH_RMD" \
+	-v TBL_SPP_RUN2="${TBL_RMS}" \
+	-v TBL_DATA_RUN2="${TBL_RMD}" \
+	-v TBL_STATS_RUN2="${TBL_RMDS}" \
+	-f "${srcdir}/sql/delete_nsr_species.sql"
+	source "${includesdir}/check_status.sh"
+fi
 
 if [ "$savedata" == "t" ]; then
 

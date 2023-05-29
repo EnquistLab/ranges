@@ -43,22 +43,10 @@ species_table_rows,
 species
 )
 SELECT 
-'Before: shared species'::text,
+'Shared species'::text,
 NULL,
 NULL,
 (SELECT COUNT(*)::integer FROM :TBL_SPP_RUN2 WHERE is_in_run1=1)::integer
-;
-INSERT INTO :TBL_STATS_RUN2 (
-period,
-obs,
-species_table_rows,
-species
-)
-SELECT 
-'Before filtering shared species'::text,
-(SELECT COUNT(*) FROM :TBL_DATA_RUN2)::integer,
-NULL,
-(SELECT COUNT(*)::integer FROM :TBL_SPP_RUN2)::integer
 ;
 
 --
@@ -78,40 +66,6 @@ FROM :TBL_SPP_RUN2
 WHERE is_in_run1=1
 ;
 
---
--- Run the count again
--- 
-
--- Flag shared species again (there shouldn't be any)
-ALTER TABLE :TBL_SPP_RUN2
-DROP COLUMN is_in_run1
-;
-ALTER TABLE :TBL_SPP_RUN2
-ADD COLUMN is_in_run1 smallint default 0
-;
-UPDATE :TBL_SPP_RUN2 a
-SET is_in_run1=1
-FROM :TBL_SPP_RUN1 b
-WHERE a.scrubbed_species_binomial=b.scrubbed_species_binomial
-;
-CREATE INDEX :shared_ssp_idx ON :TBL_SPP_RUN2(is_in_run1);
-
---
--- Summarize the results & save
--- 
-
-INSERT INTO :TBL_STATS_RUN2 (
-period,
-obs,
-species_table_rows,
-species
-)
-SELECT 
-'After: shared species'::text,
-NULL,
-NULL,
-(SELECT COUNT(*)::integer FROM :TBL_SPP_RUN2 WHERE is_in_run1=1)::integer
-;
 INSERT INTO :TBL_STATS_RUN2 (
 period,
 obs,
@@ -132,4 +86,3 @@ NULL,
 ALTER TABLE :TBL_SPP_RUN2
 DROP COLUMN is_in_run1
 ;
-

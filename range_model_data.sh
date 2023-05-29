@@ -45,9 +45,9 @@
 
 # Name of parameters file. 
 # CRITICAL! This is the only parameter you need to set in this file.
-f_params="params_20230524_missing_spp.sh"  
 f_params="params_TEST.sh"  
 f_params="params_TEST_missing_spp.sh"  
+f_params="params_20230524_missing_spp.sh"  
 
 # Load parameters
 source "$f_params"  
@@ -230,14 +230,14 @@ if [ "$missing_spp_run" == "t" ]; then
 	-f "${srcdir}/sql/delete_shared_species.sql"
 	source "${includesdir}/check_status.sh"
 
-	echoi $i -n "Deleting species with introduced observations..."
+	echoi $i -n "Deleting NSR species & keeping species with unknown native status only..."
 	PGOPTIONS='--client-min-messages=warning' \
 	psql -U $USER -d $DB -q --set ON_ERROR_STOP=1 \
 	-v SCH_RMD="$SCH_RMD" \
 	-v TBL_SPP_RUN2="${TBL_RMS}" \
 	-v TBL_DATA_RUN2="${TBL_RMD}" \
 	-v TBL_STATS_RUN2="${TBL_RMDS}" \
-	-f "${srcdir}/sql/delete_introduced_obs_species.sql"
+	-f "${srcdir}/sql/delete_nsr_species.sql"
 	source "${includesdir}/check_status.sh"
 fi
 

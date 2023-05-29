@@ -38,12 +38,28 @@ ADD PRIMARY KEY (scrubbed_species_binomial)
 
 -- Save before counts to table range_model_data_stats_${run}
 DROP TABLE IF EXISTS :TBL_RMDS;
-CREATE TABLE :TBL_RMDS AS
+
+
+DROP TABLE IF EXISTS :TBL_RMDS;
+CREATE TABLE :TBL_RMDS (
+id serial PRIMARY KEY,
+period text,
+obs integer,
+species integer,
+species_table_rows integer
+)
+;
+INSERT INTO :TBL_RMDS (
+period,
+obs,
+species_table_rows,
+species
+)
 SELECT 
-'Before filtering multistatus species obs'::text AS period,
-(SELECT COUNT(*) FROM :TBL_RMD)::integer AS obs,
-(SELECT COUNT(*) FROM range_model_species_temp)::integer AS species_table_rows,
-(SELECT COUNT(DISTINCT scrubbed_species_binomial)::integer FROM range_model_species_temp)::integer AS species
+'Before filtering multistatus species obs',
+(SELECT COUNT(*) FROM :TBL_RMD),
+(SELECT COUNT(*) FROM range_model_species_temp),
+(SELECT COUNT(DISTINCT scrubbed_species_binomial) FROM range_model_species_temp)
 ;
 
 -- Mark for deletion all observations where species is multi-status

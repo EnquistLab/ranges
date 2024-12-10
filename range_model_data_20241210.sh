@@ -45,7 +45,8 @@
 
 # Name of parameters file. 
 # CRITICAL! This is the only parameter you need to set in this file.
-f_params="params_20230524.sh"  
+f_params="params_20241210_missing_spp.sh"  
+f_params="params_20241210.sh"  
 
 # Load parameters
 source "$f_params"  

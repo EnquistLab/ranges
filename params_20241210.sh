@@ -10,12 +10,12 @@
 # Preferred format: yyyymmdd
 # Add suffix if a later part of a multiple-part run: yyyymmdd_suffix
 # E.g., "20230405_missing_spp"
-run="20230524"
+run="20241210"
 
 # SQL record limit for testing with small batch of records
 # Set to empty string to remove limit for production run 
-LIMIT=10000
 LIMIT=""
+LIMIT=100
 
 # Save data to filesystem (t|f)
 # if "f" then just produces postgres tables
@@ -98,7 +98,7 @@ SCH_RMD="range_data"
 basedir="/home/boyle/bien"
 
 # Directory of wherever shared functions & utilities files are kept
-includesdir=$basedir"/includes/sh"
+includesdir=$basedir"/submodules/includes"
 
 # Name of shared functions file
 f_func="functions.sh"
@@ -117,7 +117,7 @@ email="ojalaquellueva@gmail.com"
 #############################################################
 
 # Working directory 
-wd=$basedir"/ranges"
+wd=$basedir"/ranges_data"
 
 # Source code base directory (this one containing this script)
 srcdir=$wd"/src"
@@ -146,5 +146,5 @@ TBL_RMDS="range_model_data_stats_${run}"
 
 # Range model species attributes file
 # Note: individual species data in separate files [Genus]_[species].csv
-rms_outfile="range_model_species_attributes.csv"
+rms_outfile="range_model_species_attributes_${run}.csv"
 

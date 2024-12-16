@@ -10,7 +10,7 @@
 # Preferred format: yyyymmdd
 # Add suffix if a later part of a multiple-part run: yyyymmdd_suffix
 # E.g., "20230405_missing_spp"
-run="20241210"
+run="20241210_missing_spp"
 
 # SQL record limit for testing with small batch of records
 # Set to empty string to remove limit for production run 
@@ -28,14 +28,14 @@ savedata="t"
 # Is this a missing species run? (t|f)
 # False (f): a main run with is_introduced=1
 # True (t): a supplemental missing species run with is_introduce=NULL
-missing_spp_run="f"
+missing_spp_run="t"
 
 # Previous run code
 # CRITICAL if $missing_spp_run=="t"
 # Ignored if $missing_spp_run=="f"
 # Used to form name of previous run species table, which 
 # is used for checking and removing shared species
-prev_run=""
+prev_run="20241210"
 
 ########################################
 # WHERE clause parameters
@@ -79,18 +79,25 @@ HEREDOC
 # will be  added to the main WHERE clause (above). 
 SQL_WHERE_INTRODUCED=$(cat << HEREDOC
 
-AND is_introduced=0
+AND ( native_status in ('A', 'UNK') or native_status is null )
 
 HEREDOC
 )
 
+#######################################
 # Database parameters
+#######################################
+
 # SCH is the schema of the main BIEN analytical DB (source schema)
 # SCH_RMD is range model data schema (target schema, where data tables generated)
 DB="vegbien"
 USER="bien"
 SCH="analytical_db"
 SCH_RMD="range_data"
+
+#######################################
+# Paths, file names & misc
+#######################################
 
 # Base directory
 # Full path to parent directory of module base directory (i.e., parent of ranges/)
@@ -104,7 +111,7 @@ includesdir=$basedir"/submodules/includes"
 f_func="functions.sh"
 
 # Process name for email notifications
-pname="BIEN range model data extract on ${run}"
+pname="BIEN range model data run ${run}"
 
 # Default email address for notifications (start, finish, error)
 # Used if you supply command line parameter -m 
@@ -140,6 +147,11 @@ TBL_RMD="range_model_data_raw_${run}"
 
 # Range model species table
 TBL_RMS="range_model_species_${run}"
+
+# Range model species table from previous run
+# Used only if $missing_spp_run=="t"
+TBL_RMS_PREV="range_model_species_${prev_run}"
+
 
 # Range model data statistics table
 TBL_RMDS="range_model_data_stats_${run}"
